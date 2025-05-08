@@ -1,10 +1,8 @@
-import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:3000/api';
+import api from "./interceptor/axiosInterceptor";
 
 export const registerUser = async (userData) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/auth/register`, userData);
+    const response = await api.post("auth/register", userData);
     return response.data;
   } catch (error) {
     handleError(error);
@@ -13,7 +11,7 @@ export const registerUser = async (userData) => {
 
 export const loginUser = async (credentials) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/auth/login`, credentials);
+    const response = await api.post("auth/login", credentials);
     return response.data;
   } catch (error) {
     handleError(error);
@@ -21,13 +19,16 @@ export const loginUser = async (credentials) => {
 };
 
 const handleError = (error) => {
-  console.error('API Error:', error.response ? error.response.data : error.message);
+  console.error(
+    "API Error:",
+    error.response ? error.response.data : error.message
+  );
   throw error;
 };
 
 export const getAllTemplate = async () => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/template`);
+    const response = await api.get("template");
     return response.data;
   } catch (error) {
     handleError(error);
@@ -36,16 +37,16 @@ export const getAllTemplate = async () => {
 
 export const createTemplate = async (name) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/template`, name);
+    const response = await api.post("template", name);
     return response.data;
   } catch (error) {
     handleError(error);
   }
 };
 
-export const editTemplate = async (name,id) => {
+export const editTemplate = async (name, id) => {
   try {
-    const response = await axios.put(`${API_BASE_URL}/template/${id}`, name);
+    const response = await api.put(`template/${id}`, name);
     return response.data;
   } catch (error) {
     handleError(error);
@@ -54,19 +55,16 @@ export const editTemplate = async (name,id) => {
 
 export const deleteTemplate = async (id) => {
   try {
-    const response = await axios.delete(`${API_BASE_URL}/template/${id}`);
+    const response = await api.delete(`template/${id}`);
     return response.data;
   } catch (error) {
     handleError(error);
   }
 };
 
-
-
-
 export const getAllExpense = async () => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/expense`);
+    const response = await api.get("expense");
     return response.data;
   } catch (error) {
     handleError(error);
@@ -75,7 +73,7 @@ export const getAllExpense = async () => {
 
 export const createExpense = async (data) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/expense`, data);
+    const response = await api.post("expense", data);
     return response.data;
   } catch (error) {
     handleError(error);
@@ -84,7 +82,7 @@ export const createExpense = async (data) => {
 
 export const editExpense = async (data, id) => {
   try {
-    const response = await axios.put(`${API_BASE_URL}/expense/${id}`, data);
+    const response = await api.put(`expense/${id}`, data);
     return response.data;
   } catch (error) {
     handleError(error);
@@ -93,7 +91,7 @@ export const editExpense = async (data, id) => {
 
 export const deleteExpense = async (id) => {
   try {
-    const response = await axios.delete(`${API_BASE_URL}/expense/${id}`);
+    const response = await api.delete(`expense/${id}`);
     return response.data;
   } catch (error) {
     handleError(error);

@@ -62,6 +62,9 @@ function LoginComponent() {
     setIsSubmitting(true);
     try {
       const response = await loginUser(formData);
+      if (response.code == 200) {
+        localStorage.setItem("access_token", response.data.token);
+      }
       console.log("Login successful:", response);
     } catch (error) {
       console.error("Login failed:", error);

@@ -1,20 +1,45 @@
-import React from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import AuthContainer from './pages/auth'
-import "./index.css"
-import "./App.css"
-import Template from './pages/template'
-import FinancialEntryTemplate from './pages/expense'
-function App() {
+import React from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import AuthContainer from "./pages/auth";
+import "./index.css";
+import "./App.css";
+import Template from "./pages/template";
+import FinancialEntryTemplate from "./pages/expense";
+import ProtectedRoute from "./components/protectedRoute/index.jsx";
+import Shop from "./pages/shop/index.jsx";
+
+function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/auth" element={<AuthContainer />} />
-        <Route path="/template" element={<Template />} />
-        <Route path="/expense" element={<FinancialEntryTemplate />} />
+        <Route
+          path="/template"
+          element={
+            <ProtectedRoute>
+              <Template />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/expense/:id"
+          element={
+            <ProtectedRoute>
+              <FinancialEntryTemplate />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/shop"
+          element={
+            <ProtectedRoute>
+              <Shop />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </BrowserRouter>
-  )
+  );
 }
 
-export default App
+export default AppRoutes;

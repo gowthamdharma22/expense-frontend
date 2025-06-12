@@ -5,15 +5,16 @@ import {
   deleteTemplate,
   editTemplate,
   getAllTemplate,
-} from "../../api/auth";
-
+} from "../../api/api";
+import { useNavigate } from "react-router-dom";
 export default function Template() {
   const [names, setNames] = useState([]);
-  const [view, setView] = useState("list"); // 'list', 'create'
+  const [view, setView] = useState("list");
   const [currentEditId, setCurrentEditId] = useState(null);
   const [editValue, setEditValue] = useState("");
   const [newName, setNewName] = useState("");
 
+  const navigate = useNavigate();
   useEffect(() => {
     handleGetAllTemplate();
   }, []);
@@ -117,8 +118,8 @@ export default function Template() {
                       </button>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
+                    <div className="flex items-center justify-between cursor-pointer" onClick={() => navigate(`/expense/${item.id}`)}>
+                      <div className="flex items-center " >
                         <div>
                           <h3 className="font-medium text-gray-800">
                             {item.name}

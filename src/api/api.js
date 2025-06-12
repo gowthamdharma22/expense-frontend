@@ -62,9 +62,9 @@ export const deleteTemplate = async (id) => {
   }
 };
 
-export const getAllExpense = async () => {
+export const getExpenseById = async (id) => {
   try {
-    const response = await api.get("expense");
+    const response = await api.get(`expense/${id}`);
     return response.data;
   } catch (error) {
     handleError(error);
@@ -92,6 +92,42 @@ export const editExpense = async (data, id) => {
 export const deleteExpense = async (id) => {
   try {
     const response = await api.delete(`expense/${id}`);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const getAllShop = async () => {
+  try {
+    const response = await api.get("shop");
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const createShop = async (data) => {
+  try {
+    const response = await api.post("shop", data);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const editShop = async (data, id) => {
+  try {
+    const response = await api.put(`shop/${id}`, data);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const deleteShop = async (id) => {
+  try {
+    const response = await api.delete(`shop/${id}`);
     return response.data;
   } catch (error) {
     handleError(error);

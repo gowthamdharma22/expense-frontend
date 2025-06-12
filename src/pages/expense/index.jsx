@@ -9,15 +9,16 @@ import {
   Loader,
 } from "lucide-react";
 import {
-  getAllExpense,
+  getExpenseById,
   createExpense,
   editExpense,
   deleteExpense,
-} from "../../api/auth";
+} from "../../api/api";
 
 // Helper function to get template ID from route
 const getTemplateId = () => {
-  return "1";
+  const templateId = window.location.pathname.split("/").pop();
+  return templateId;
 };
 
 export default function FinancialEntryTemplate() {
@@ -25,7 +26,7 @@ export default function FinancialEntryTemplate() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editingEntry, setEditingEntry] = useState(null);
-  const [isNotify,setIsNotify] = useState(false);
+  const [isNotify, setIsNotify] = useState(false);
   const [newEntry, setNewEntry] = useState({
     name: "",
     description: "",
@@ -46,8 +47,7 @@ export default function FinancialEntryTemplate() {
   const fetchEntries = async () => {
     setLoading(true);
     try {
-      const response = await getAllExpense();
-      // Handle the specific API response structure
+      const response = await getExpenseById(getTemplateId());
       if (response && response.code === 200 && response.data) {
         setEntries(response.data);
         setError(null);
@@ -62,7 +62,6 @@ export default function FinancialEntryTemplate() {
     }
   };
 
-  // Sort entries based on current sort field and direction
   const sortedEntries = [...entries].sort((a, b) => {
     if (!sortField) return 0;
 
@@ -87,7 +86,6 @@ export default function FinancialEntryTemplate() {
     }
   };
 
-  // Extract isDefault value from template array
   const getIsDefault = (entry) => {
     if (entry.template && entry.template.length > 0) {
       return entry.template[0].isDefault;
@@ -95,9 +93,7 @@ export default function FinancialEntryTemplate() {
     return false;
   };
 
-  // Prepare entry for editing
   const handleEditClick = (entry) => {
-    // Transform the data structure for editing
     const editableEntry = {
       id: entry.id,
       name: entry.name,
@@ -107,7 +103,7 @@ export default function FinancialEntryTemplate() {
         entry.template && entry.template.length > 0
           ? entry.template[0].templateId
           : getTemplateId(),
-      isDefault: getIsDefault(entry),
+      isDefault: entry.isDefault,
     };
 
     setEditingEntry(editableEntry);
@@ -136,7 +132,6 @@ export default function FinancialEntryTemplate() {
     });
   };
 
-  // Transform edited entry to match API payload structure
   const handleEditSave = async () => {
     setIsSubmitting(true);
     try {
@@ -174,7 +169,6 @@ export default function FinancialEntryTemplate() {
 
   const handleAddNew = () => {
     setIsAddingNew(true);
-    // Set the current template ID from the route
     setNewEntry({
       ...newEntry,
       templateId: getTemplateId(),
@@ -184,11 +178,9 @@ export default function FinancialEntryTemplate() {
   const handleNewEntrySave = async () => {
     setIsSubmitting(true);
     try {
-      // The payload already matches the expected format
       const response = await createExpense(newEntry);
       await fetchEntries();
 
-      // Reset form
       setNewEntry({
         name: "",
         description: "",
@@ -487,7 +479,7 @@ export default function FinancialEntryTemplate() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {getIsDefault(entry) ? (
+                      {entry.isDefault ? (
                         <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
                           Default
                         </span>

@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Mail, Lock } from "lucide-react";
-import { loginUser, registerUser } from "../../api/auth";
+import { Mail, Lock, CodeSquare } from "lucide-react";
+import { loginUser, registerUser } from "../../api/api";
 
 // Main container component
 export default function AuthContainer() {
@@ -35,12 +35,13 @@ export default function AuthContainer() {
 
         {/* Display the active component */}
         <div className="bg-white rounded-lg shadow-lg p-8">
-          {activeTab === "login" ? <LoginComponent /> : <SignupComponent />}
+          {activeTab === "login" ? <LoginComponent /> :  <SignupComponent setActiveTab={setActiveTab} />}
         </div>
       </div>
     </div>
   );
 }
+
 
 // Login Component
 function LoginComponent() {
@@ -62,10 +63,12 @@ function LoginComponent() {
     setIsSubmitting(true);
     try {
       const response = await loginUser(formData);
+      console.log("Login response:", response.data);
       if (response.code == 200) {
         localStorage.setItem("access_token", response.data.token);
-      }
       console.log("Login successful:", response);
+
+      }
     } catch (error) {
       console.error("Login failed:", error);
     } finally {
@@ -125,11 +128,11 @@ function LoginComponent() {
 }
 
 // Signup Component
-function SignupComponent() {
+function SignupComponent({ setActiveTab }) {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    role: "user",
+    role: "employee",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -146,6 +149,7 @@ function SignupComponent() {
     try {
       const response = await registerUser(formData);
       console.log("Signup successful:", response);
+      setActiveTab("login"); // Switch to login tab after successful signup
     } catch (error) {
       console.error("Signup failed:", error);
     } finally {

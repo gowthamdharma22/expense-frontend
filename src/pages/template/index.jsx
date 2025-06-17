@@ -68,29 +68,29 @@ export default function Template() {
   };
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">Template</h1>
-      </header>
+    <div className="w-full max-w-7xl mx-auto p-6  rounded-lg mt-2">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">Template</h1>
+
+        {view === "list" && (
+          <button
+            onClick={() => setView("create")}
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            <PlusCircle size={16} className="mr-1" />
+            Add Template
+          </button>
+        )}
+      </div>
 
       {view === "list" && (
         <>
-          <div className="flex justify-between items-center mb-6">
-            <button
-              onClick={() => setView("create")}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            >
-              <PlusCircle size={16} className="mr-1" />
-              Add Template
-            </button>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="bg-white rounded-lg border border-gray-150 shadow-md mb-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
               {names.map((item) => (
                 <div
                   key={item.id}
-                  className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                  className="bg-white border border-blue-200 rounded-lg p-4 hover:shadow-md transition-shadow"
                 >
                   {currentEditId === item.id ? (
                     <div className="flex items-center space-x-2">
@@ -118,8 +118,11 @@ export default function Template() {
                       </button>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-between cursor-pointer" onClick={() => navigate(`/expense/${item.id}`)}>
-                      <div className="flex items-center " >
+                    <div
+                      className="flex items-center justify-between cursor-pointer"
+                      onClick={() => navigate(`/expense/${item.id}`)}
+                    >
+                      <div className="flex items-center">
                         <div>
                           <h3 className="font-medium text-gray-800">
                             {item.name}
@@ -128,7 +131,8 @@ export default function Template() {
                       </div>
                       <div className="flex space-x-2">
                         <button
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setCurrentEditId(item.id);
                             setEditValue(item.name);
                           }}
@@ -138,7 +142,10 @@ export default function Template() {
                           <Edit size={16} />
                         </button>
                         <button
-                          onClick={() => handleDeleteName(item.id)}
+                          onClick={(e) => {
+                            e.stopPropagation(); // 👈 prevent navigation
+                            handleDeleteName(item.id);
+                          }}
                           className="p-1 text-red-600 hover:text-red-800"
                           title="Delete"
                         >

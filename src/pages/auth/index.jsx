@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Mail, Lock, CodeSquare } from "lucide-react";
+import { Mail, Lock, CodeSquare, User } from "lucide-react";
 import { loginUser, registerUser } from "../../api/api";
 
 // Main container component
@@ -35,13 +35,16 @@ export default function AuthContainer() {
 
         {/* Display the active component */}
         <div className="bg-white rounded-lg shadow-lg p-8">
-          {activeTab === "login" ? <LoginComponent /> :  <SignupComponent setActiveTab={setActiveTab} />}
+          {activeTab === "login" ? (
+            <LoginComponent />
+          ) : (
+            <SignupComponent setActiveTab={setActiveTab} />
+          )}
         </div>
       </div>
     </div>
   );
 }
-
 
 // Login Component
 function LoginComponent() {
@@ -66,8 +69,7 @@ function LoginComponent() {
       console.log("Login response:", response.data);
       if (response.code == 200) {
         localStorage.setItem("access_token", response.data.token);
-      console.log("Login successful:", response);
-
+        console.log("Login successful:", response);
       }
     } catch (error) {
       console.error("Login failed:", error);
@@ -130,10 +132,12 @@ function LoginComponent() {
 // Signup Component
 function SignupComponent({ setActiveTab }) {
   const [formData, setFormData] = useState({
+    name: "", // ← add this line
     email: "",
     password: "",
     role: "employee",
   });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
@@ -162,6 +166,21 @@ function SignupComponent({ setActiveTab }) {
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Create Account</h2>
 
       <form onSubmit={handleSignup} className="space-y-5">
+        <div className="relative">
+          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+            <User size={18} />
+          </div>
+          <input
+            type="text"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            placeholder="Full Name"
+            className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+            required
+          />
+        </div>
+
         <div className="relative">
           <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
             <Mail size={18} />

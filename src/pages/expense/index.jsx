@@ -9,7 +9,7 @@ import {
   Loader,
 } from "lucide-react";
 import {
-  getExpenseById,
+  getExpenseByTemplateId,
   createExpense,
   editExpense,
   deleteExpense,
@@ -47,7 +47,7 @@ export default function FinancialEntryTemplate() {
   const fetchEntries = async () => {
     setLoading(true);
     try {
-      const response = await getExpenseById(getTemplateId());
+      const response = await getExpenseByTemplateId(getTemplateId());
       if (response && response.code === 200 && response.data) {
         setEntries(response.data);
         setError(null);
@@ -232,7 +232,7 @@ export default function FinancialEntryTemplate() {
   }
 
   return (
-    <div className="w-full max-w-6xl mx-auto p-6 bg-gray-50 rounded-lg shadow-md">
+    <div className="w-full max-w-7xl mx-auto p-6  rounded-lg mt-2">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Financial Entries</h1>
         <button

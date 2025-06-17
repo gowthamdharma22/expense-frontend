@@ -7,6 +7,9 @@ import Template from "./pages/template";
 import FinancialEntryTemplate from "./pages/expense";
 import ProtectedRoute from "./components/protectedRoute/index.jsx";
 import Shop from "./pages/shop/index.jsx";
+import DayExpense from "./pages/dayExpense/index.jsx";
+import ShopList from "./pages/shopList/index.jsx";
+import DayCalender from "./pages/dayCalender/index.jsx";
 
 function AppRoutes() {
   return (
@@ -34,6 +37,30 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <Shop />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dayExpense/:selectedDate"
+          element={
+            <ProtectedRoute>
+              <DayExpense />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dayCalender/:shopId"
+          element={
+            <ProtectedRoute>
+              <DayCalender />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/shopList"
+          element={
+            <ProtectedRoute>
+              <ShopList />
             </ProtectedRoute>
           }
         />

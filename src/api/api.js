@@ -71,6 +71,15 @@ export const getExpenseById = async (id) => {
   }
 };
 
+export const getExpenseByTemplateId = async (id) => {
+  try {
+    const response = await api.get(`/expense/template/${id}`);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
 export const createExpense = async (data) => {
   try {
     const response = await api.post("expense", data);
@@ -128,6 +137,52 @@ export const editShop = async (data, id) => {
 export const deleteShop = async (id) => {
   try {
     const response = await api.delete(`shop/${id}`);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+//day
+export const createDay = async (data) => {
+  try {
+    const response = await api.post("day/create", data);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const getDayByDate = async (date, shopId) => {
+  try {
+    const response = await api.get(`day/date/${date}?shopId=${shopId}`);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const getDayExpenseByDate = async (date, shopId) => {
+  try {
+    const response = await api.get(`day-expense/${date}?shopId=${shopId}`);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const getExpenseByShopId = async (shopId) => {
+  try {
+    const response = await api.get(`expense/shop/${shopId}?nonDefault=true`);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const createDayExpense = async (data) => {
+  try {
+    const response = await api.post("day-expense", data);
     return response.data;
   } catch (error) {
     handleError(error);

@@ -15,6 +15,7 @@ import {
   createDayExpense,
   getDayExpenseByDate,
   getExpenseByShopId,
+  updateDayExpense,
 } from "../../api/api";
 import { useParams, useSearchParams } from "react-router-dom";
 function DayExpenseSheet() {
@@ -28,7 +29,6 @@ function DayExpenseSheet() {
   const [editingExpense, setEditingExpense] = useState(null);
   const [editAmount, setEditAmount] = useState("");
   const [editDescription, setEditDescription] = useState("");
-
   const { selectedDate } = useParams();
   const [searchParams] = useSearchParams();
   const shopId = searchParams.get("shopId");
@@ -140,6 +140,7 @@ function DayExpenseSheet() {
 
   const handleSaveExpense = async (expense) => {
     const payload = {
+      shopId: shopId,
       expenseId: expense.expenseId,
       dayId: expense.dayId,
       templateId: expense.templateId,
@@ -150,7 +151,7 @@ function DayExpenseSheet() {
     console.log("Saving expense:", payload);
 
     try {
-      await createDayExpense(payload);
+      await updateDayExpense(selectedDate, payload);
       setEditingExpense(null);
       setEditAmount("");
       setEditDescription("");

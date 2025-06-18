@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Mail, Lock, CodeSquare, User } from "lucide-react";
 import { loginUser, registerUser } from "../../api/api";
-
+import { useNavigate } from "react-router-dom";
 // Main container component
 export default function AuthContainer() {
+
   const [activeTab, setActiveTab] = useState("login");
 
   return (
@@ -48,6 +49,7 @@ export default function AuthContainer() {
 
 // Login Component
 function LoginComponent() {
+  const nav = useNavigate();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -70,6 +72,7 @@ function LoginComponent() {
       if (response.code == 200) {
         localStorage.setItem("access_token", response.data.token);
         console.log("Login successful:", response);
+        nav("/shopList")
       }
     } catch (error) {
       console.error("Login failed:", error);

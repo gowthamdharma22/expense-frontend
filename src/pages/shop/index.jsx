@@ -7,17 +7,18 @@ import {
   getAllTemplate,
 } from "../../api/api";
 import { PlusCircle, Pencil, Trash2, X, Save, Loader2 } from "lucide-react";
+import Navbar from "../../components/nav";
 
 // Move Modal component outside to prevent recreation on every render
-const Modal = ({ 
-  isModalOpen, 
-  setIsModalOpen, 
-  formMode, 
-  formData, 
-  handleInputChange, 
-  handleSubmit, 
-  templates, 
-  shopTypes 
+const Modal = ({
+  isModalOpen,
+  setIsModalOpen,
+  formMode,
+  formData,
+  handleInputChange,
+  handleSubmit,
+  templates,
+  shopTypes,
 }) => {
   if (!isModalOpen) return null;
 
@@ -232,105 +233,108 @@ const Shop = () => {
   };
 
   return (
-    <div className="px-6 py-8 max-w-7xl mx-auto">
-      <Modal 
-        isModalOpen={isModalOpen}
-        setIsModalOpen={setIsModalOpen}
-        formMode={formMode}
-        formData={formData}
-        handleInputChange={handleInputChange}
-        handleSubmit={handleSubmit}
-        templates={templates}
-        shopTypes={shopTypes}
-      />
+    <>
+      <Navbar />
+      <div className="px-6 py-8 max-w-7xl mx-auto">
+        <Modal
+          isModalOpen={isModalOpen}
+          setIsModalOpen={setIsModalOpen}
+          formMode={formMode}
+          formData={formData}
+          handleInputChange={handleInputChange}
+          handleSubmit={handleSubmit}
+          templates={templates}
+          shopTypes={shopTypes}
+        />
 
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Shop Management</h1>
-        <button
-          onClick={openCreateModal}
-          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 flex items-center"
-        >
-          <PlusCircle size={18} className="mr-1" />
-          Add Shop
-        </button>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Shop Management</h1>
+          <button
+            onClick={openCreateModal}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 flex items-center"
+          >
+            <PlusCircle size={18} className="mr-1" />
+            Add Shop
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center items-center py-10">
+            <Loader2 size={40} className="animate-spin text-blue-600" />
+          </div>
+        ) : shops.length === 0 ? (
+          <div className="bg-white shadow rounded-lg p-8 text-center">
+            <p className="text-gray-500 text-lg">
+              No shops found. Add a new shop to get started.
+            </p>
+          </div>
+        ) : (
+          <div className="bg-white shadow overflow-hidden rounded-lg">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Shop Name
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Template
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Shop Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Allowed Edit Days
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {shops.map((shop) => {
+                  const template = templates.find(
+                    (t) => t.id === shop.templateId
+                  );
+                  return (
+                    <tr key={shop.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                        {shop.name}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {template?.name || `Template ${shop.templateId}`}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {shop.shopType}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {shop.allowedEditDays} day
+                        {shop.allowedEditDays !== 1 ? "s" : ""}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-right space-x-2">
+                        <button
+                          onClick={() => openEditModal(shop)}
+                          className="text-blue-600 hover:text-blue-900 flex items-center"
+                        >
+                          <Pencil size={16} className="mr-1" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(shop.id)}
+                          className="text-red-600 hover:text-red-900 flex items-center"
+                        >
+                          <Trash2 size={16} className="mr-1" />
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
-
-      {loading ? (
-        <div className="flex justify-center items-center py-10">
-          <Loader2 size={40} className="animate-spin text-blue-600" />
-        </div>
-      ) : shops.length === 0 ? (
-        <div className="bg-white shadow rounded-lg p-8 text-center">
-          <p className="text-gray-500 text-lg">
-            No shops found. Add a new shop to get started.
-          </p>
-        </div>
-      ) : (
-        <div className="bg-white shadow overflow-hidden rounded-lg">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Shop Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Template
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Shop Type
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Allowed Edit Days
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {shops.map((shop) => {
-                const template = templates.find(
-                  (t) => t.id === shop.templateId
-                );
-                return (
-                  <tr key={shop.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                      {shop.name}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      {template?.name || `Template ${shop.templateId}`}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      {shop.shopType}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      {shop.allowedEditDays} day
-                      {shop.allowedEditDays !== 1 ? "s" : ""}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-right space-x-2">
-                      <button
-                        onClick={() => openEditModal(shop)}
-                        className="text-blue-600 hover:text-blue-900 flex items-center"
-                      >
-                        <Pencil size={16} className="mr-1" />
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(shop.id)}
-                        className="text-red-600 hover:text-red-900 flex items-center"
-                      >
-                        <Trash2 size={16} className="mr-1" />
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+    </>
   );
 };
 

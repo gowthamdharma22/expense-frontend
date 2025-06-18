@@ -188,3 +188,12 @@ export const createDayExpense = async (data) => {
     handleError(error);
   }
 };
+
+export const updateDayExpense = async (date,data) => {
+  try {
+    const response = await api.put(`day-expense/${date}`, data);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};

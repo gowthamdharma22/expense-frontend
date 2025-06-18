@@ -12,6 +12,7 @@ import {
   Edit,
 } from "lucide-react";
 import {
+  adjustTransaction,
   createDayExpense,
   getDayExpenseByDate,
   getExpenseByShopId,
@@ -19,6 +20,7 @@ import {
 } from "../../api/api";
 import { useParams, useSearchParams } from "react-router-dom";
 function DayExpenseSheet() {
+  const [templateId, setTemplateId] = useState(0);
   const [dayData, setDayData] = useState(null);
   const [expenses, setExpenses] = useState([]);
   const [defaultExpenses, setDefaultExpenses] = useState([]);
@@ -58,6 +60,7 @@ function DayExpenseSheet() {
     setLoading(true);
     try {
       const mockData = await getDayExpenseByDate(selectedDate, shopId);
+      setTemplateId(mockData.data.templateId);
       setDayData(mockData.data.day);
       setExpenses(mockData.data.expenses);
     } catch (error) {
@@ -82,18 +85,21 @@ function DayExpenseSheet() {
     const payload = {
       dayId: dayData?.id,
       expenseId: parseInt(newExpense.expenseId),
-      templateId: 5, // You might want to make this dynamic
+      templateId: templateId,
       amount: parseFloat(newExpense.amount),
       description: newExpense.description,
     };
 
     console.log("Adding expense:", payload);
-    // Make API call here
-
-    setShowAddExpense(false);
-    setNewExpense({ expenseId: "", amount: "", description: "" });
-    // Refresh data
-    fetchDayData();
+    try {
+      await createDayExpense(payload);
+      setShowAddExpense(false);
+      setNewExpense({ expenseId: "", amount: "", description: "" });
+    } catch (error) {
+      console.error("Error saving expense:", error);
+    } finally {
+      fetchDayData();
+    }
   };
 
   const handleAddCredit = async () => {
@@ -103,17 +109,21 @@ function DayExpenseSheet() {
     const payload = {
       dayId: dayData?.id,
       expenseId: expenseId,
-      templateId: 5,
+      templateId: templateId,
       amount: parseFloat(newCredit.amount),
       description: newCredit.description,
     };
 
     console.log("Adding credit/debit:", payload);
-    // Make API call here
-
-    setShowAddCredit(false);
-    setNewCredit({ type: "credit", amount: "", description: "" });
-    fetchDayData();
+    try {
+      await createDayExpense(payload);
+      setShowAddCredit(false);
+      setNewCredit({ type: "credit", amount: "", description: "" });
+    } catch (error) {
+      console.error("Error saving expense:", error);
+    } finally {
+      fetchDayData();
+    }
   };
 
   const handleAddAdjust = async () => {
@@ -123,13 +133,19 @@ function DayExpenseSheet() {
       shopId: shopId,
       amount: parseFloat(newAdjust.amount),
       description: newAdjust.description,
+      type: "credit", //Todo::Kanna => change to support credit/debit
     };
 
     console.log("Adding adjustment:", payload);
-    // Make API call here
-
-    setShowAddAdjust(false);
-    setNewAdjust({ amount: "", description: "" });
+    try {
+      await adjustTransaction(payload);
+      setShowAddAdjust(false);
+      setNewAdjust({ amount: "", description: "" });
+    } catch (error) {
+      console.error("Error saving expense:", error);
+    } finally {
+      fetchDayData();
+    }
   };
 
   const handleEditExpense = (expense) => {

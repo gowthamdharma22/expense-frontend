@@ -197,3 +197,12 @@ export const updateDayExpense = async (date,data) => {
     handleError(error);
   }
 };
+
+export const adjustTransaction = async (data) => {
+  try {
+    const response = await api.post("transaction/adjust", data);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};

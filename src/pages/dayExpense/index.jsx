@@ -168,7 +168,7 @@ function DayExpenseSheet() {
     console.log("Saving expense:", payload);
 
     try {
-      await updateDayExpense(selectedDate, payload);
+      await updateDayExpense(expense.id, payload);
       setEditingExpense(null);
       setEditAmount("");
       setEditDescription("");
@@ -312,7 +312,7 @@ function DayExpenseSheet() {
                           className="w-full p-1 border border-gray-300 rounded text-sm"
                         />
                       ) : (
-                        expense.expense.description
+                        expense?.description || expense.expense.description
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">

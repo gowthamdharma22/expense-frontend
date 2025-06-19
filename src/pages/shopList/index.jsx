@@ -103,10 +103,10 @@ const ShopSelection = () => {
                 There are no shops available at the moment.
               </p>
               <button
-                onClick={fetchShops}
+                onClick={()=>nav("/shop")}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-300"
               >
-                Try Again
+                Create shop
               </button>
             </div>
           )}

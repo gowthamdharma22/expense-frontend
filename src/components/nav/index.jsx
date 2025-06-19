@@ -19,7 +19,9 @@ const Navbar = () => {
   };
 
   const handleLogout = () => {
-    alert("Logout clicked!");
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("role")
+    nav("/auth")
   };
 
   return (

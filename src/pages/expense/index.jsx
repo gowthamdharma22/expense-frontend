@@ -14,6 +14,7 @@ import {
   editExpense,
   deleteExpense,
 } from "../../api/api";
+import Navbar from "../../components/nav";
 
 // Helper function to get template ID from route
 const getTemplateId = () => {
@@ -232,284 +233,289 @@ export default function FinancialEntryTemplate() {
   }
 
   return (
-    <div className="w-full max-w-7xl mx-auto p-6  rounded-lg mt-2">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Financial Entries</h1>
-        <button
-          onClick={handleAddNew}
-          className="flex items-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors"
-          disabled={isSubmitting}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Add New Entry
-        </button>
-      </div>
-
-      {/* New Entry Form */}
-      {isAddingNew && (
-        <div className="mb-6 p-4 border border-blue-200 rounded-md bg-blue-50">
-          <h2 className="text-lg font-semibold mb-4 text-blue-800">
-            New Financial Entry
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Name
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={newEntry.name}
-                onChange={handleNewEntryChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description
-              </label>
-              <input
-                type="text"
-                name="description"
-                value={newEntry.description}
-                onChange={handleNewEntryChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Type
-              </label>
-              <select
-                name="type"
-                value={newEntry.type}
-                onChange={handleNewEntryChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              >
-                <option value="debit">Debit</option>
-                <option value="credit">Credit</option>
-              </select>
-            </div>
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                name="isDefault"
-                checked={newEntry.isDefault}
-                onChange={handleNewEntryChange}
-                className="h-4 w-4 text-blue-600 rounded"
-              />
-              <label className="ml-2 text-sm font-medium text-gray-700">
-                Set as Default
-              </label>
-            </div>
-          </div>
-          <div className="flex justify-end space-x-2">
-            <button
-              onClick={handleNewEntryCancel}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
-              disabled={isSubmitting}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleNewEntrySave}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader className="animate-spin h-4 w-4 mr-2" />
-                  Saving...
-                </>
-              ) : (
-                "Save"
-              )}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Empty state */}
-      {entries.length === 0 && !isAddingNew && (
-        <div className="text-center py-8 bg-white rounded-lg shadow">
-          <p className="text-gray-500 mb-4">
-            No entries found. Create your first entry!
-          </p>
+    <>
+      <Navbar />
+      <div className="w-full max-w-7xl mx-auto p-6  rounded-lg mt-2">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-800">
+            Financial Entries
+          </h1>
           <button
             onClick={handleAddNew}
-            className="flex items-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors mx-auto"
+            className="flex items-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors"
+            disabled={isSubmitting}
           >
             <Plus className="mr-2 h-4 w-4" />
             Add New Entry
           </button>
         </div>
-      )}
 
-      {/* Entries Table */}
-      {entries.length > 0 && (
-        <div className="overflow-x-auto bg-white rounded-lg shadow">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-100">
-              <tr>
-                <th
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort("name")}
+        {/* New Entry Form */}
+        {isAddingNew && (
+          <div className="mb-6 p-4 border border-blue-200 rounded-md bg-blue-50">
+            <h2 className="text-lg font-semibold mb-4 text-blue-800">
+              New Financial Entry
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Name
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={newEntry.name}
+                  onChange={handleNewEntryChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
+                <input
+                  type="text"
+                  name="description"
+                  value={newEntry.description}
+                  onChange={handleNewEntryChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Type
+                </label>
+                <select
+                  name="type"
+                  value={newEntry.type}
+                  onChange={handleNewEntryChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 >
-                  <div className="flex items-center">
-                    Name
-                    <ArrowUpDown className="ml-1 h-3 w-3" />
-                  </div>
-                </th>
-                <th
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort("description")}
-                >
-                  <div className="flex items-center">
-                    Description
-                    <ArrowUpDown className="ml-1 h-3 w-3" />
-                  </div>
-                </th>
-                <th
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort("type")}
-                >
-                  <div className="flex items-center">
-                    Type
-                    <ArrowUpDown className="ml-1 h-3 w-3" />
-                  </div>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
-                  <div className="flex items-center">
-                    Default
-                    <ArrowUpDown className="ml-1 h-3 w-3" />
-                  </div>
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {editingEntry ? (
-                <tr className="bg-blue-50">
-                  <td className="px-6 py-4">
-                    <input
-                      type="text"
-                      name="name"
-                      value={editingEntry.name}
-                      onChange={handleEditChange}
-                      className="w-full px-2 py-1 border border-gray-300 rounded-md"
-                    />
-                  </td>
-                  <td className="px-6 py-4">
-                    <input
-                      type="text"
-                      name="description"
-                      value={editingEntry.description}
-                      onChange={handleEditChange}
-                      className="w-full px-2 py-1 border border-gray-300 rounded-md"
-                    />
-                  </td>
-                  <td className="px-6 py-4">
-                    <select
-                      name="type"
-                      value={editingEntry.type}
-                      onChange={handleEditChange}
-                      className="w-full px-2 py-1 border border-gray-300 rounded-md"
-                    >
-                      <option value="debit">Debit</option>
-                      <option value="credit">Credit</option>
-                    </select>
-                  </td>
-                  <td className="px-6 py-4">
-                    <input
-                      type="checkbox"
-                      name="isDefault"
-                      checked={editingEntry.isDefault}
-                      onChange={handleEditChange}
-                      className="h-4 w-4 text-blue-600 rounded"
-                    />
-                  </td>
-                  <td className="px-6 py-4 text-right text-sm font-medium space-x-2">
-                    <button
-                      onClick={handleEditSave}
-                      className="text-green-600 hover:text-green-900 inline-flex items-center"
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <Loader className="animate-spin h-4 w-4 mr-1" />
-                          Saving
-                        </>
-                      ) : (
-                        <>
-                          <Check className="h-4 w-4 mr-1" /> Save
-                        </>
-                      )}
-                    </button>
-                    <button
-                      onClick={handleEditCancel}
-                      className="text-gray-600 hover:text-gray-900 inline-flex items-center"
-                      disabled={isSubmitting}
-                    >
-                      <X className="h-4 w-4 mr-1" /> Cancel
-                    </button>
-                  </td>
+                  <option value="debit">Debit</option>
+                  <option value="credit">Credit</option>
+                </select>
+              </div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  name="isDefault"
+                  checked={newEntry.isDefault}
+                  onChange={handleNewEntryChange}
+                  className="h-4 w-4 text-blue-600 rounded"
+                />
+                <label className="ml-2 text-sm font-medium text-gray-700">
+                  Set as Default
+                </label>
+              </div>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={handleNewEntryCancel}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
+                disabled={isSubmitting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleNewEntrySave}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader className="animate-spin h-4 w-4 mr-2" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save"
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {entries.length === 0 && !isAddingNew && (
+          <div className="text-center py-8 bg-white rounded-lg shadow">
+            <p className="text-gray-500 mb-4">
+              No entries found. Create your first entry!
+            </p>
+            <button
+              onClick={handleAddNew}
+              className="flex items-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors mx-auto"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add New Entry
+            </button>
+          </div>
+        )}
+
+        {/* Entries Table */}
+        {entries.length > 0 && (
+          <div className="overflow-x-auto bg-white rounded-lg shadow">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    onClick={() => handleSort("name")}
+                  >
+                    <div className="flex items-center">
+                      Name
+                      <ArrowUpDown className="ml-1 h-3 w-3" />
+                    </div>
+                  </th>
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    onClick={() => handleSort("description")}
+                  >
+                    <div className="flex items-center">
+                      Description
+                      <ArrowUpDown className="ml-1 h-3 w-3" />
+                    </div>
+                  </th>
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    onClick={() => handleSort("type")}
+                  >
+                    <div className="flex items-center">
+                      Type
+                      <ArrowUpDown className="ml-1 h-3 w-3" />
+                    </div>
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer">
+                    <div className="flex items-center">
+                      Default
+                      <ArrowUpDown className="ml-1 h-3 w-3" />
+                    </div>
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
-              ) : null}
-
-              {sortedEntries.map((entry) =>
-                editingEntry && editingEntry.id === entry.id ? null : (
-                  <tr key={entry.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {entry.name}
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {editingEntry ? (
+                  <tr className="bg-blue-50">
+                    <td className="px-6 py-4">
+                      <input
+                        type="text"
+                        name="name"
+                        value={editingEntry.name}
+                        onChange={handleEditChange}
+                        className="w-full px-2 py-1 border border-gray-300 rounded-md"
+                      />
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {entry.description}
+                    <td className="px-6 py-4">
+                      <input
+                        type="text"
+                        name="description"
+                        value={editingEntry.description}
+                        onChange={handleEditChange}
+                        className="w-full px-2 py-1 border border-gray-300 rounded-md"
+                      />
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          entry.type === "credit"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
+                    <td className="px-6 py-4">
+                      <select
+                        name="type"
+                        value={editingEntry.type}
+                        onChange={handleEditChange}
+                        className="w-full px-2 py-1 border border-gray-300 rounded-md"
                       >
-                        {entry.type}
-                      </span>
+                        <option value="debit">Debit</option>
+                        <option value="credit">Credit</option>
+                      </select>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {entry.isDefault ? (
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                          Default
-                        </span>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
+                    <td className="px-6 py-4">
+                      <input
+                        type="checkbox"
+                        name="isDefault"
+                        checked={editingEntry.isDefault}
+                        onChange={handleEditChange}
+                        className="h-4 w-4 text-blue-600 rounded"
+                      />
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <td className="px-6 py-4 text-right text-sm font-medium space-x-2">
                       <button
-                        onClick={() => handleEditClick(entry)}
-                        className="text-blue-600 hover:text-blue-900 mr-3"
-                        disabled={isSubmitting || editingEntry !== null}
+                        onClick={handleEditSave}
+                        className="text-green-600 hover:text-green-900 inline-flex items-center"
+                        disabled={isSubmitting}
                       >
-                        <Edit className="h-4 w-4 inline" />
+                        {isSubmitting ? (
+                          <>
+                            <Loader className="animate-spin h-4 w-4 mr-1" />
+                            Saving
+                          </>
+                        ) : (
+                          <>
+                            <Check className="h-4 w-4 mr-1" /> Save
+                          </>
+                        )}
                       </button>
                       <button
-                        onClick={() => handleDeleteClick(entry.id)}
-                        className="text-red-600 hover:text-red-900"
-                        disabled={isSubmitting || editingEntry !== null}
+                        onClick={handleEditCancel}
+                        className="text-gray-600 hover:text-gray-900 inline-flex items-center"
+                        disabled={isSubmitting}
                       >
-                        <Trash2 className="h-4 w-4 inline" />
+                        <X className="h-4 w-4 mr-1" /> Cancel
                       </button>
                     </td>
                   </tr>
-                )
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+                ) : null}
+
+                {sortedEntries.map((entry) =>
+                  editingEntry && editingEntry.id === entry.id ? null : (
+                    <tr key={entry.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {entry.name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {entry.description}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            entry.type === "credit"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {entry.type}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {entry.isDefault ? (
+                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                            Default
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button
+                          onClick={() => handleEditClick(entry)}
+                          className="text-blue-600 hover:text-blue-900 mr-3"
+                          disabled={isSubmitting || editingEntry !== null}
+                        >
+                          <Edit className="h-4 w-4 inline" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClick(entry.id)}
+                          className="text-red-600 hover:text-red-900"
+                          disabled={isSubmitting || editingEntry !== null}
+                        >
+                          <Trash2 className="h-4 w-4 inline" />
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </>
   );
 }

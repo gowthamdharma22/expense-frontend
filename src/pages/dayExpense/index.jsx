@@ -49,6 +49,7 @@ function DayExpenseSheet() {
   const [newAdjust, setNewAdjust] = useState({
     amount: "",
     description: "",
+    type: "credit",
   });
 
   useEffect(() => {
@@ -133,14 +134,14 @@ function DayExpenseSheet() {
       shopId: shopId,
       amount: parseFloat(newAdjust.amount),
       description: newAdjust.description,
-      type: "credit", //Todo::Kanna => change to support credit/debit
+      type: newAdjust.type,
     };
 
     console.log("Adding adjustment:", payload);
     try {
       await adjustTransaction(payload);
       setShowAddAdjust(false);
-      setNewAdjust({ amount: "", description: "" });
+      setNewAdjust({ amount: "", description: "", type: "credit" });
     } catch (error) {
       console.error("Error saving expense:", error);
     } finally {
@@ -699,6 +700,27 @@ function DayExpenseSheet() {
             </div>
 
             <div className="space-y-4">
+              {/* Type Dropdown */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Type
+                </label>
+                <select
+                  value={newAdjust.type || ""}
+                  onChange={(e) =>
+                    setNewAdjust({ ...newAdjust, type: e.target.value })
+                  }
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                >
+                  <option value="" disabled>
+                    Select type
+                  </option>
+                  <option value="debit">Debit</option>
+                  <option value="credit">Credit</option>
+                </select>
+              </div>
+
+              {/* Amount Input */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Amount
@@ -714,6 +736,7 @@ function DayExpenseSheet() {
                 />
               </div>
 
+              {/* Description Input */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Description

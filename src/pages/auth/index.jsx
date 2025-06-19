@@ -71,6 +71,7 @@ function LoginComponent() {
       console.log("Login response:", response.data);
       if (response.code == 200) {
         localStorage.setItem("access_token", response.data.token);
+        localStorage.setItem("role",response.data.user.role)
         console.log("Login successful:", response);
         nav("/shopList")
       }

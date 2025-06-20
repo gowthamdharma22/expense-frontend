@@ -88,7 +88,8 @@ function DayCalender() {
   };
 
   const handleDateClick = (day) => {
-    if (!day || isFutureDate(day) || getDateData(day)?.isFrozen) return;
+    // || getDateData(day)?.isFrozen
+    if (!day || isFutureDate(day) ) return;
 
     setSelectedDate(day);
     const formattedDate = `${currentYear}-${String(currentMonth + 1).padStart(
@@ -202,7 +203,8 @@ function DayCalender() {
                         ${
                           !day
                             ? "border-transparent"
-                            : isFuture || dateData?.isFrozen
+                            : isFuture 
+                            // || dateData?.isFrozen
                             ? "border-gray-200 bg-gray-50 cursor-not-allowed"
                             : isSelected
                             ? "border-indigo-500 bg-indigo-50"

@@ -7,9 +7,9 @@ import {
   X,
   TrendingUp,
   TrendingDown,
-  CreditCard,
+  Check,
+  FileText,
   Settings,
-  Edit,
 } from "lucide-react";
 import {
   adjustTransaction,
@@ -17,23 +17,28 @@ import {
   getDayExpenseByDate,
   getExpenseByShopId,
   updateDayExpense,
+  verifyDayExpense,
 } from "../../api/api";
 import { useParams, useSearchParams } from "react-router-dom";
-function DayExpenseSheet() {
+
+function ExcelExpenseSheet() {
   const [templateId, setTemplateId] = useState(0);
   const [dayData, setDayData] = useState(null);
   const [expenses, setExpenses] = useState([]);
   const [defaultExpenses, setDefaultExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isVerified, setIsVerified] = useState(false);
+
+  // Modal states
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showAddCredit, setShowAddCredit] = useState(false);
   const [showAddAdjust, setShowAddAdjust] = useState(false);
-  const [editingExpense, setEditingExpense] = useState(null);
-  const [editAmount, setEditAmount] = useState("");
-  const [editDescription, setEditDescription] = useState("");
-  const { selectedDate } = useParams();
-  const [searchParams] = useSearchParams();
-  const shopId = searchParams.get("shopId");
+
+  // Editing states
+  const [editingCell, setEditingCell] = useState(null);
+  const [editValue, setEditValue] = useState("");
+
+  // Form states
   const [newExpense, setNewExpense] = useState({
     expenseId: "",
     amount: "",
@@ -52,10 +57,14 @@ function DayExpenseSheet() {
     type: "credit",
   });
 
+  const { selectedDate } = useParams();
+  const [searchParams] = useSearchParams();
+  const shopId = searchParams.get("shopId");
+
   useEffect(() => {
     fetchDayData();
     fetchDefaultExpenses();
-  }, [selectedDate, shopId]);
+  }, []);
 
   const fetchDayData = async () => {
     setLoading(true);
@@ -64,6 +73,7 @@ function DayExpenseSheet() {
       setTemplateId(mockData.data.templateId);
       setDayData(mockData.data.day);
       setExpenses(mockData.data.expenses);
+      setIsVerified(mockData.data.day.isVerified);
     } catch (error) {
       console.error("Error fetching day data:", error);
     } finally {
@@ -80,6 +90,47 @@ function DayExpenseSheet() {
     }
   };
 
+  const handleCellClick = (rowId, field, currentValue) => {
+    setEditingCell(`${rowId}-${field}`);
+    setEditValue(currentValue.toString());
+  };
+
+  const handleCellSave = async (expense, field) => {
+    const payload = {
+      shopId: shopId,
+      expenseId: expense.expenseId,
+      dayId: expense.dayId,
+      templateId: expense.templateId,
+      amount: field === "amount" ? parseFloat(editValue) : expense.amount,
+      description:
+        field === "description"
+          ? editValue
+          : expense.description || expense.expense.description,
+    };
+
+    try {
+      await updateDayExpense(expense.id, payload);
+      setEditingCell(null);
+      setEditValue("");
+      fetchDayData();
+    } catch (error) {
+      console.error("Error saving expense:", error);
+    }
+  };
+
+  const handleCellCancel = () => {
+    setEditingCell(null);
+    setEditValue("");
+  };
+
+  const handleKeyPress = (e, expense, field) => {
+    if (e.key === "Enter") {
+      handleCellSave(expense, field);
+    } else if (e.key === "Escape") {
+      handleCellCancel();
+    }
+  };
+
   const handleAddExpense = async () => {
     if (!newExpense.expenseId || !newExpense.amount) return;
 
@@ -91,15 +142,13 @@ function DayExpenseSheet() {
       description: newExpense.description,
     };
 
-    console.log("Adding expense:", payload);
     try {
       await createDayExpense(payload);
       setShowAddExpense(false);
       setNewExpense({ expenseId: "", amount: "", description: "" });
+      fetchDayData();
     } catch (error) {
       console.error("Error saving expense:", error);
-    } finally {
-      fetchDayData();
     }
   };
 
@@ -115,15 +164,13 @@ function DayExpenseSheet() {
       description: newCredit.description,
     };
 
-    console.log("Adding credit/debit:", payload);
     try {
       await createDayExpense(payload);
       setShowAddCredit(false);
       setNewCredit({ type: "credit", amount: "", description: "" });
+      fetchDayData();
     } catch (error) {
       console.error("Error saving expense:", error);
-    } finally {
-      fetchDayData();
     }
   };
 
@@ -137,51 +184,24 @@ function DayExpenseSheet() {
       type: newAdjust.type,
     };
 
-    console.log("Adding adjustment:", payload);
     try {
       await adjustTransaction(payload);
       setShowAddAdjust(false);
       setNewAdjust({ amount: "", description: "", type: "credit" });
+      fetchDayData();
     } catch (error) {
       console.error("Error saving expense:", error);
-    } finally {
-      fetchDayData();
     }
   };
 
-  const handleEditExpense = (expense) => {
-    setEditingExpense(expense.id);
-    setEditAmount(expense.amount.toString());
-    setEditDescription(expense.expense.description);
-  };
-
-  const handleSaveExpense = async (expense) => {
-    const payload = {
-      shopId: shopId,
-      expenseId: expense.expenseId,
-      dayId: expense.dayId,
-      templateId: expense.templateId,
-      amount: parseFloat(editAmount),
-      description: editDescription,
-    };
-
-    console.log("Saving expense:", payload);
-
+  const handleVerifyDay = async () => {
     try {
-      await updateDayExpense(expense.id, payload);
-      setEditingExpense(null);
-      setEditAmount("");
-      setEditDescription("");
+      await verifyDayExpense(dayData.id, !isVerified);
+      setIsVerified(!isVerified);
       fetchDayData();
-    } catch (error) {
-      console.error("Error saving expense:", error);
+    } catch (err) {
+      console.error(err);
     }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingExpense(null);
-    setEditAmount("");
-    setEditDescription("");
   };
 
   const formatDate = (dateString) => {
@@ -211,305 +231,301 @@ function DayExpenseSheet() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex items-center justify-between">
+    <div className="min-h-screen bg-gray-100 p-4">
+      <div className="max-w-full mx-auto bg-white shadow-lg rounded-lg">
+        {/* Excel-style Header Bar */}
+        <div className="bg-gray-50 border-b-2 border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-4">
-              <Calendar className="w-8 h-8 text-blue-600" />
+              <FileText className="w-8 h-8 text-blue-600" />
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-xl font-bold text-gray-800">
                   Day Expense Sheet
                 </h1>
-                <p className="text-gray-600">
+                <p className="text-sm text-gray-600">
                   {formatDate(dayData?.date || selectedDate)}
                 </p>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-right">
-                <p className="text-sm text-gray-500">Shop ID</p>
-                <p className="text-lg font-semibold">{shopId}</p>
-              </div>
+
+            <div className="flex items-center space-x-3">
+              <span className="text-sm text-gray-600">
+                Shop ID: <strong>{shopId}</strong>
+              </span>
               <div className="flex items-center space-x-2">
-                {dayData?.isVerified ? (
-                  <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                {isVerified ? (
+                  <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">
                     Verified
                   </span>
                 ) : (
-                  <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">
+                  <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs">
                     Not Verified
                   </span>
                 )}
-                {dayData?.isFrozen && (
-                  <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-                    Frozen
-                  </span>
-                )}
+                <button
+                  onClick={handleVerifyDay}
+                  className={`flex items-center space-x-1 px-3 py-1 rounded text-white text-sm ${
+                    isVerified
+                      ? "bg-green-600 hover:bg-green-700"
+                      : "bg-gray-500 hover:bg-gray-600"
+                  }`}
+                >
+                  <Check className="w-4 h-4" />
+                  <span>{isVerified ? "Verified" : "Verify"}</span>
+                </button>
               </div>
             </div>
           </div>
+
+          <div className="flex items-center space-x-2 bg-white p-3 rounded border">
+            <button
+              onClick={() => setShowAddExpense(true)}
+              className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Expense</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setShowAddCredit(true);
+                setNewCredit({ ...newCredit, type: "credit" });
+              }}
+              className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm"
+            >
+              <TrendingUp className="w-4 h-4" />
+              <span>Add Credit</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setShowAddCredit(true);
+                setNewCredit({ ...newCredit, type: "debit" });
+              }}
+              className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 text-sm"
+            >
+              <TrendingDown className="w-4 h-4" />
+              <span>Add Debit</span>
+            </button>
+
+            <button
+              onClick={() => setShowAddAdjust(true)}
+              className="flex items-center space-x-2 bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 text-sm"
+            >
+              <Settings className="w-4 h-4" />
+              <span>Adjust</span>
+            </button>
+          </div>
         </div>
 
-        {/* Main Expense Table */}
-        <div className="bg-white rounded-lg shadow-sm mb-6">
-          <div className="p-6 border-b">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Expenses</h2>
-              <button
-                onClick={() => setShowAddExpense(true)}
-                className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add Expense</span>
-              </button>
-            </div>
-          </div>
+        {/* Excel-style Grid */}
+        <div className="overflow-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-gray-200">
+                <th className="border border-gray-300 px-3 py-2 text-left text-xs font-medium text-gray-700 w-16">
+                  S.No
+                </th>
+                <th className="border border-gray-300 px-3 py-2 text-left text-xs font-medium text-gray-700 min-w-36">
+                  Expense Name
+                </th>
+                <th className="border border-gray-300 px-3 py-2 text-left text-xs font-medium text-gray-700 min-w-36">
+                  Description
+                </th>
+                <th className="border border-gray-300 px-3 py-2 text-left text-xs font-medium text-gray-700 w-44">
+                  Credit (₹)
+                </th>
+                <th className="border border-gray-300 px-3 py-2 text-left text-xs font-medium text-gray-700 w-44">
+                  Debit (₹)
+                </th>
+                <th className="border border-gray-300 px-3 py-2 text-left text-xs font-medium text-gray-700 w-24">
+                  Verified
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {expenses.map((expense, index) => (
+                <tr key={expense.id} className="hover:bg-blue-50">
+                  {/* S.No */}
+                  <td className="border border-gray-300 px-3 py-2 text-sm text-center bg-gray-50">
+                    {index + 1}
+                  </td>
 
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    S.No
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Expense Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Description
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Credit
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Debit
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {expenses.map((expense, index) => (
-                  <tr key={expense.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {index + 1}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {expense.expense.name}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {editingExpense === expense.id ? (
+                  {/* Expense Name */}
+                  <td className="border border-gray-300 px-3 py-2 text-sm font-medium bg-gray-50">
+                    {expense.expense.name}
+                  </td>
+
+                  {/* Description - Editable */}
+                  <td className="border border-gray-300 px-0 py-0">
+                    {editingCell === `${expense.id}-description` ? (
+                      <input
+                        type="text"
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        onBlur={() => handleCellSave(expense, "description")}
+                        onKeyDown={(e) =>
+                          handleKeyPress(e, expense, "description")
+                        }
+                        className="w-full h-full px-3 py-2 border-0 outline-0 focus:bg-white text-sm"
+                        autoFocus
+                      />
+                    ) : (
+                      <div
+                        className="px-3 py-2 cursor-pointer hover:bg-blue-50 min-h-[32px] text-sm"
+                        onClick={() =>
+                          handleCellClick(
+                            expense.id,
+                            "description",
+                            expense?.description || expense.expense.description
+                          )
+                        }
+                      >
+                        {expense?.description || expense.expense.description}
+                      </div>
+                    )}
+                  </td>
+
+                  {/* Credit - Editable */}
+                  <td className="border border-gray-300 px-0 py-0">
+                    {expense.expense.type === "credit" ? (
+                      editingCell === `${expense.id}-amount` ? (
                         <input
-                          type="text"
-                          value={editDescription}
-                          onChange={(e) => setEditDescription(e.target.value)}
-                          className="w-full p-1 border border-gray-300 rounded text-sm"
+                          type="number"
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onBlur={() => handleCellSave(expense, "amount")}
+                          onKeyDown={(e) =>
+                            handleKeyPress(e, expense, "amount")
+                          }
+                          className="w-full h-full px-3 py-2 border-0 outline-0 focus:bg-white text-sm text-green-600 font-medium"
+                          autoFocus
                         />
                       ) : (
-                        expense?.description || expense.expense.description
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      {expense.expense.type === "credit" ? (
-                        editingExpense === expense.id ? (
-                          <input
-                            type="number"
-                            value={editAmount}
-                            onChange={(e) => setEditAmount(e.target.value)}
-                            className="w-20 p-1 border border-gray-300 rounded text-sm text-green-600"
-                          />
-                        ) : (
-                          <span className="text-green-600">
-                            ₹{expense.amount}
-                          </span>
-                        )
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      {expense.expense.type === "debit" ? (
-                        editingExpense === expense.id ? (
-                          <input
-                            type="number"
-                            value={editAmount}
-                            onChange={(e) => setEditAmount(e.target.value)}
-                            className="w-20 p-1 border border-gray-300 rounded text-sm text-red-600"
-                          />
-                        ) : (
-                          <span className="text-red-600">
-                            ₹{expense.amount}
-                          </span>
-                        )
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {expense.isVerified ? (
-                        <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
-                          Verified
-                        </span>
-                      ) : (
-                        <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
-                          Pending
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      {editingExpense === expense.id ? (
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => handleSaveExpense(expense)}
-                            className="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700"
-                          >
-                            <Save className="w-3 h-3" />
-                          </button>
-                          <button
-                            onClick={handleCancelEdit}
-                            className="bg-gray-400 text-white px-2 py-1 rounded text-xs hover:bg-gray-500"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => handleEditExpense(expense)}
-                          className="text-blue-600 hover:text-blue-900"
+                        <div
+                          className="px-3 py-2 cursor-pointer hover:bg-blue-50 min-h-[32px] text-sm text-green-600 font-medium"
+                          onClick={() =>
+                            handleCellClick(
+                              expense.id,
+                              "amount",
+                              expense.amount
+                            )
+                          }
                         >
-                          Edit
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                          {expense.amount.toLocaleString()}
+                        </div>
+                      )
+                    ) : (
+                      <div className="px-3 py-2 text-center text-gray-400 text-sm">
+                        -
+                      </div>
+                    )}
+                  </td>
 
-                {/* Add Credit Button Row */}
-                <tr className="border-t-2 border-dashed border-gray-300">
-                  <td className="px-6 py-4"></td>
-                  <td className="px-6 py-4"></td>
-                  <td className="px-6 py-4"></td>
-                  <td className="px-6 py-4">
-                    <button
-                      onClick={() => setShowAddCredit(true)}
-                      className="flex items-center space-x-1 text-green-600 hover:text-green-800 text-sm"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Add Credit</span>
-                    </button>
+                  {/* Debit - Editable */}
+                  <td className="border border-gray-300 px-0 py-0">
+                    {expense.expense.type === "debit" ? (
+                      editingCell === `${expense.id}-amount` ? (
+                        <input
+                          type="number"
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onBlur={() => handleCellSave(expense, "amount")}
+                          onKeyDown={(e) =>
+                            handleKeyPress(e, expense, "amount")
+                          }
+                          className="w-full h-full px-3 py-2 border-0 outline-0 focus:bg-white text-sm text-red-600 font-medium"
+                          autoFocus
+                        />
+                      ) : (
+                        <div
+                          className="px-3 py-2 cursor-pointer hover:bg-blue-50 min-h-[32px] text-sm text-red-600 font-medium"
+                          onClick={() =>
+                            handleCellClick(
+                              expense.id,
+                              "amount",
+                              expense.amount
+                            )
+                          }
+                        >
+                          {expense.amount.toLocaleString()}
+                        </div>
+                      )
+                    ) : (
+                      <div className="px-3 py-2 text-center text-gray-400 text-sm">
+                        -
+                      </div>
+                    )}
                   </td>
-                  <td className="px-6 py-4">
-                    <button
-                      onClick={() => setShowAddCredit(true)}
-                      className="flex items-center space-x-1 text-red-600 hover:text-red-800 text-sm"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Add Debit</span>
-                    </button>
-                  </td>
-                  <td className="px-6 py-4"></td>
-                  <td className="px-6 py-4">
-                    <button
-                      onClick={() => setShowAddAdjust(true)}
-                      className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-sm"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Adjust</span>
-                    </button>
+
+                  {/* Status */}
+                  <td className="border border-gray-300 px-3 py-2 text-center">
+                    {expense.isVerified ? (
+                      <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
+                        ✓
+                      </span>
+                    ) : (
+                      <span className="px-2 py-1 text-xs bg-red-100 text-yellow-800 rounded">
+                        x
+                      </span>
+                    )}
                   </td>
                 </tr>
-              </tbody>
-            </table>
-          </div>
+              ))}
 
-          {/* Total */}
-          <div className="bg-gray-100 px-6 py-4 border-t-2">
-            <div className="flex justify-between items-center">
-              <div className="text-lg font-semibold text-gray-700">Total</div>
-              <div className="flex space-x-8">
-                <div className="text-right">
-                  <p className="text-sm text-gray-600">Total Credit</p>
-                  <p className="text-xl font-bold text-green-600">
-                    ₹
-                    {expenses
-                      .filter((e) => e.expense.type === "credit")
-                      .reduce((sum, e) => sum + e.amount, 0)}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-gray-600">Total Debit</p>
-                  <p className="text-xl font-bold text-red-600">
-                    ₹
-                    {expenses
-                      .filter((e) => e.expense.type === "debit")
-                      .reduce((sum, e) => sum + e.amount, 0)}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-gray-600">Net Amount</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    ₹{calculateTotal()}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+              {/* Totals Row */}
+              <tr className="bg-gray-100 font-bold">
+                <td className="border border-gray-300 px-3 py-3 text-center text-sm">
+                  -
+                </td>
+                <td className="border border-gray-300 px-3 py-3 text-sm">
+                  TOTAL
+                </td>
+                <td className="border border-gray-300 px-3 py-3 text-sm">-</td>
+                <td className="border border-gray-300 px-3 py-3 text-sm text-green-600">
+                  {expenses
+                    .filter((e) => e.expense.type === "credit")
+                    .reduce((sum, e) => sum + e.amount, 0)
+                    .toLocaleString()}
+                </td>
+                <td className="border border-gray-300 px-3 py-3 text-sm text-red-600">
+                  {expenses
+                    .filter((e) => e.expense.type === "debit")
+                    .reduce((sum, e) => sum + e.amount, 0)
+                    .toLocaleString()}
+                </td>
+                <td className="border border-gray-300 px-3 py-3 text-center text-sm">
+                  -
+                </td>
+              </tr>
 
-        {/* Credit/Debit Borrow Section */}
-        <div className="bg-white rounded-lg shadow-sm mb-6">
-          <div className="p-6 border-b">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Credit/Debit Borrow Notes
-              </h2>
-              <button
-                onClick={() => setShowAddCredit(true)}
-                className="flex items-center space-x-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
-              >
-                <CreditCard className="w-4 h-4" />
-                <span>Add Note</span>
-              </button>
-            </div>
-          </div>
-          <div className="p-6">
-            <p className="text-gray-500 text-center py-8">
-              No borrow notes added yet
-            </p>
-          </div>
-        </div>
-
-        {/* Adjust and Store Section */}
-        <div className="bg-white rounded-lg shadow-sm">
-          <div className="p-6 border-b">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Adjust and Store
-              </h2>
-              <button
-                onClick={() => setShowAddAdjust(true)}
-                className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
-              >
-                <Settings className="w-4 h-4" />
-                <span>Add Adjustment</span>
-              </button>
-            </div>
-          </div>
-          <div className="p-6">
-            <p className="text-gray-500 text-center py-8">
-              No adjustments added yet
-            </p>
-          </div>
+              {/* Net Amount Row */}
+              <tr className="bg-blue-50 font-bold">
+                <td className="border border-gray-300 px-3 py-3 text-center text-sm">
+                  -
+                </td>
+                <td className="border border-gray-300 px-3 py-3 text-sm">
+                  NET AMOUNT
+                </td>
+                <td className="border border-gray-300 px-3 py-3 text-sm">-</td>
+                <td
+                  className="border border-gray-300 px-3 py-3 text-sm"
+                  colSpan="2"
+                >
+                  <div className="text-center text-blue-700 text-lg">
+                    ₹{calculateTotal().toLocaleString()}
+                  </div>
+                </td>
+                <td className="border border-gray-300 px-3 py-3 text-center text-sm">
+                  -
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {/* Add Expense Modal */}
+      {/* Modals remain the same as your original code */}
       {showAddExpense && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
@@ -593,7 +609,6 @@ function DayExpenseSheet() {
         </div>
       )}
 
-      {/* Add Credit/Debit Modal */}
       {showAddCredit && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
@@ -688,7 +703,6 @@ function DayExpenseSheet() {
         </div>
       )}
 
-      {/* Add Adjustment Modal */}
       {showAddAdjust && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
@@ -700,7 +714,6 @@ function DayExpenseSheet() {
             </div>
 
             <div className="space-y-4">
-              {/* Type Dropdown */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Type
@@ -720,7 +733,6 @@ function DayExpenseSheet() {
                 </select>
               </div>
 
-              {/* Amount Input */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Amount
@@ -736,7 +748,6 @@ function DayExpenseSheet() {
                 />
               </div>
 
-              {/* Description Input */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Description
@@ -774,4 +785,4 @@ function DayExpenseSheet() {
   );
 }
 
-export default DayExpenseSheet;
+export default ExcelExpenseSheet;

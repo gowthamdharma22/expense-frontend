@@ -206,3 +206,11 @@ export const adjustTransaction = async (data) => {
     handleError(error);
   }
 };
+export const verifyDayExpense = async (dayId, verified) => {
+  try {
+    const response = await api.put(`day/${dayId}`, { isVerified: verified });
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};

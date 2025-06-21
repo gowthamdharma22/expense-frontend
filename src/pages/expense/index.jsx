@@ -50,7 +50,8 @@ export default function FinancialEntryTemplate() {
     try {
       const response = await getExpenseByTemplateId(getTemplateId());
       if (response && response.code === 200 && response.data) {
-        setEntries(response.data);
+        const temp = response.data.splice(2);
+        setEntries(temp);
         setError(null);
       } else {
         throw new Error(response?.status || "Unknown error occurred");
@@ -493,6 +494,7 @@ export default function FinancialEntryTemplate() {
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+
                         <button
                           onClick={() => handleEditClick(entry)}
                           className="text-blue-600 hover:text-blue-900 mr-3"

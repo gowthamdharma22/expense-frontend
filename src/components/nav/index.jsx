@@ -7,7 +7,7 @@ const Navbar = () => {
   const [activeItem, setActiveItem] = useState("home");
 
   const navItems = [
-    { id: "shopList", label: "Home", icon: Home },
+    { id: "", label: "Home", icon: Home },
     { id: "shop", label: "Shop", icon: ShoppingBag },
     { id: "template", label: "Template", icon: Layout },
   ];

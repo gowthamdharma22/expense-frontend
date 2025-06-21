@@ -73,7 +73,7 @@ function LoginComponent() {
         localStorage.setItem("access_token", response.data.token);
         localStorage.setItem("role",response.data.user.role)
         console.log("Login successful:", response);
-        nav("/shopList")
+        nav("/")
       }
     } catch (error) {
       console.error("Login failed:", error);

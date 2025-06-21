@@ -121,10 +121,7 @@ export default function Template() {
                         </button>
                       </div>
                     ) : (
-                      <div
-                        className="flex items-center justify-between cursor-pointer"
-                        onClick={() => navigate(`/expense/${item.id}`)}
-                      >
+                      <div className="flex items-center justify-between cursor-pointer">
                         <div className="flex items-center">
                           <div>
                             <h3 className="font-medium text-gray-800">
@@ -133,6 +130,13 @@ export default function Template() {
                           </div>
                         </div>
                         <div className="flex space-x-2">
+                          <button
+                          style={{fontSize:"12px"}}
+                            onClick={() => navigate(`/expense/${item.id}`)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white  py-1 px-2 rounded-md shadow-md transition duration-200"
+                          >
+                            Add Expense
+                          </button>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();

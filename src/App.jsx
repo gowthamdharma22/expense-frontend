@@ -10,6 +10,7 @@ import Shop from "./pages/shop/index.jsx";
 import DayExpense from "./pages/dayExpense/index.jsx";
 import ShopList from "./pages/shopList/index.jsx";
 import DayCalender from "./pages/dayCalender/index.jsx";
+import ExpenseNote from "./pages/note/index.jsx";
 
 function AppRoutes() {
   return (
@@ -57,10 +58,18 @@ function AppRoutes() {
           }
         />
         <Route
-          path="/shopList"
+          path="/"
           element={
             <ProtectedRoute>
               <ShopList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/notes/:shopId"
+          element={
+            <ProtectedRoute>
+              <ExpenseNote />
             </ProtectedRoute>
           }
         />

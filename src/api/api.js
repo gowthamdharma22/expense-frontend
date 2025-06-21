@@ -214,3 +214,12 @@ export const verifyDayExpense = async (dayId, verified) => {
     handleError(error);
   }
 };
+
+export const getNotesByShopId = async (shopId, filter) => {
+  try {
+    const response = await api.get(`transaction/${shopId}?filter=${filter}`);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};

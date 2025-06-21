@@ -9,13 +9,14 @@ import {
 } from "lucide-react";
 import { getDayByDate } from "../../api/api";
 import { useNavigate } from "react-router-dom";
+import dayjs from "dayjs";
 function DayCalender() {
   const nav = useNavigate();
   const [monthData, setMonthData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
-
+  const [allowedEditDays, setAllowedEDitdays] = useState();
   const shopId = () => {
     const templateId = window.location.pathname.split("/").pop();
     return templateId;
@@ -39,7 +40,8 @@ function DayCalender() {
       )}`;
       const data = await getDayByDate(monthString, shopId());
       console.log("Fetched month data:", data);
-      setMonthData(data.data || []);
+      setMonthData(data.data.days || []);
+      setAllowedEDitdays(data.data.allowedEditDays);
     } catch (error) {
       console.error("Failed to fetch month data:", error);
     } finally {
@@ -89,7 +91,7 @@ function DayCalender() {
 
   const handleDateClick = (day) => {
     // || getDateData(day)?.isFrozen
-    if (!day || isFutureDate(day) ) return;
+    if (!day || isFutureDate(day)) return;
 
     setSelectedDate(day);
     const formattedDate = `${currentYear}-${String(currentMonth + 1).padStart(
@@ -127,6 +129,15 @@ function DayCalender() {
 
   const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+  const isWithinAllowedDays = (targetDate, allowedEditDays) => {
+    if (!targetDate || allowedEditDays === undefined) return false;
+
+    const today = dayjs().startOf("day");
+    const dateToCheck = dayjs(targetDate).startOf("day");
+
+    const diff = today.diff(dateToCheck, "day");
+    return diff <= allowedEditDays;
+  };
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="max-w-6xl mx-auto">
@@ -195,46 +206,61 @@ function DayCalender() {
                     day === today.getDate();
                   const isSelected = day === selectedDate;
 
+                  const fullDate = day
+                    ? dayjs(
+                        `${currentYear}-${currentMonth + 1}-${day}`,
+                        "YYYY-M-D"
+                      )
+                    : null;
+
+                  const editable =
+                    fullDate &&
+                    !isFuture &&
+                    isWithinAllowedDays(fullDate, allowedEditDays);
+
                   return (
                     <div
                       key={index}
                       className={`
-                        relative aspect-square p-2 rounded-xl border-2 transition-all duration-200
-                        ${
-                          !day
-                            ? "border-transparent"
-                            : isFuture 
-                            // || dateData?.isFrozen
-                            ? "border-gray-200 bg-gray-50 cursor-not-allowed"
-                            : isSelected
-                            ? "border-indigo-500 bg-indigo-50"
-                            : isToday
-                            ? "border-green-400 bg-green-50"
-                            : dateData
-                            ? "border-blue-300 bg-blue-50 hover:border-blue-400 cursor-pointer"
-                            : "border-gray-200 hover:border-gray-300 cursor-pointer"
-                        }
-                      `}
-                      onClick={() => handleDateClick(day)}
+        relative aspect-square p-2 rounded-xl border-2 transition-all duration-200
+        ${
+          !day
+            ? "border-transparent"
+            : isFuture || !editable
+            ? // dateData?.isFrozen
+              "border-gray-200 bg-gray-50 cursor-not-allowed opacity-50"
+            : isSelected
+            ? "border-indigo-500 bg-indigo-50"
+            : isToday
+            ? "border-green-400 bg-green-50"
+            : dateData
+            ? "border-blue-300 bg-blue-50 hover:border-blue-400 cursor-pointer"
+            : "border-gray-200 hover:border-gray-300 cursor-pointer"
+        }
+      `}
+                      onClick={() => {
+                        if (!editable) return;
+                        handleDateClick(day);
+                      }}
                     >
                       {day && (
                         <>
                           {/* Day Number */}
                           <div
                             className={`
-                            text-lg font-semibold text-center mb-1
-                            ${
-                              isFuture
-                                ? "text-gray-400"
-                                : isToday
-                                ? "text-green-700"
-                                : isSelected
-                                ? "text-indigo-700"
-                                : dateData
-                                ? "text-blue-700"
-                                : "text-gray-700"
-                            }
-                          `}
+              text-lg font-semibold text-center mb-1
+              ${
+                isFuture || !editable
+                  ? "text-gray-400"
+                  : isToday
+                  ? "text-green-700"
+                  : isSelected
+                  ? "text-indigo-700"
+                  : dateData
+                  ? "text-blue-700"
+                  : "text-gray-700"
+              }
+            `}
                           >
                             {day}
                           </div>
@@ -249,7 +275,7 @@ function DayCalender() {
                           {/* Status Indicators */}
                           {dateData && (
                             <div className="flex justify-center space-x-1 mt-1">
-                              {/* Verified Status */}
+                              {/* Verified */}
                               {dateData.isVerified ? (
                                 <div className="bg-green-100 p-1 rounded-full">
                                   <Check className="w-3 h-3 text-green-600" />
@@ -260,7 +286,7 @@ function DayCalender() {
                                 </div>
                               )}
 
-                              {/* Frozen Status */}
+                              {/* Frozen */}
                               {dateData.isFrozen && (
                                 <div className="bg-blue-100 p-1 rounded-full">
                                   <Snowflake className="w-3 h-3 text-blue-600" />
@@ -269,12 +295,10 @@ function DayCalender() {
                             </div>
                           )}
 
-                          {/* Today Indicator */}
+                          {/* Today */}
                           {isToday && (
-                            <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2">
-                              <div className="text-xs font-bold text-green-700">
-                                Today
-                              </div>
+                            <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 text-xs font-bold text-green-700">
+                              Today
                             </div>
                           )}
                         </>

@@ -42,7 +42,7 @@ function AppRoutes() {
           }
         />
         <Route
-          path="/dayExpense/:selectedDate"
+          path="/dayExpense/:selectedMonth"
           element={
             <ProtectedRoute>
               <DayExpense />

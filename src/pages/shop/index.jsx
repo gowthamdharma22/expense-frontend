@@ -1,341 +1,942 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
+  Plus,
+  Pencil,
+  Trash2,
+  Check,
+  X,
+  ArrowUpDown,
+  ChevronDown,
+  ChevronRight,
+  Loader2,
+} from "lucide-react";
+import {
+  getAllTemplate,
+  createTemplate,
+  editTemplate,
+  deleteTemplate,
+  getExpenseByTemplateId,
+  createExpense,
+  editExpense,
+  deleteExpense,
   getAllShop,
   createShop,
   editShop,
   deleteShop,
-  getAllTemplate,
 } from "../../api/api";
-import { PlusCircle, Pencil, Trash2, X, Save, Loader2 } from "lucide-react";
 import Navbar from "../../components/nav";
 
-// Move Modal component outside to prevent recreation on every render
-const Modal = ({
-  isModalOpen,
-  setIsModalOpen,
-  formMode,
-  formData,
-  handleInputChange,
-  handleSubmit,
-  templates,
-  shopTypes,
-}) => {
-  if (!isModalOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-gray-800">
-            {formMode === "create" ? "Add New Shop" : "Edit Shop"}
-          </h2>
-          <button
-            onClick={() => setIsModalOpen(false)}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            <X size={24} />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Shop Name
-            </label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleInputChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Template
-            </label>
-            <select
-              name="templateId"
-              value={formData.templateId}
-              onChange={handleInputChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="" disabled>
-                Select a template
-              </option>
-              {templates.map((template) => (
-                <option key={template.id} value={template.id}>
-                  {template.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Shop Type
-            </label>
-            <select
-              name="shopType"
-              value={formData.shopType}
-              onChange={handleInputChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="" disabled>
-                Select shop type
-              </option>
-              {shopTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Allowed Edit Days
-            </label>
-            <input
-              type="number"
-              name="allowedEditDays"
-              value={formData.allowedEditDays}
-              onChange={handleInputChange}
-              min="0"
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div className="mt-6 flex justify-end">
-            <button
-              type="button"
-              onClick={() => setIsModalOpen(false)}
-              className="mr-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 flex items-center"
-            >
-              <Save size={18} className="mr-1" />
-              Save
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
+const TABS = {
+  TEMPLATES: "templates",
+  EXPENSES: "expenses",
+  SHOPS: "shops",
 };
 
-const Shop = () => {
-  const [shops, setShops] = useState([]);
+const TemplateList = ({ setSelectedTemplate, setActiveTab }) => {
   const [templates, setTemplates] = useState([]);
+  const [editingId, setEditingId] = useState(null);
+  const [editValue, setEditValue] = useState("");
+  const [newTemplateName, setNewTemplateName] = useState("");
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formMode, setFormMode] = useState("create");
-  const [currentShop, setCurrentShop] = useState(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    templateId: "",
-    allowedEditDays: 7,
-    shopType: "",
-  });
-
-  const shopTypes = ["wholesale", "retail"];
 
   useEffect(() => {
-    fetchShops();
     fetchTemplates();
   }, []);
 
-  const fetchShops = async () => {
+  const fetchTemplates = async () => {
     setLoading(true);
     try {
-      const data = await getAllShop();
-      setShops(data.data || []);
+      const response = await getAllTemplate();
+      setTemplates(response.data || []);
     } catch (error) {
-      console.error("Failed to fetch shops:", error);
+      console.error("Error fetching templates:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchTemplates = async () => {
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    if (!newTemplateName.trim()) return;
     try {
-      const data = await getAllTemplate();
-      setTemplates(data.data || []);
+      await createTemplate({ name: newTemplateName });
+      await fetchTemplates();
+      setNewTemplateName("");
     } catch (error) {
-      console.error("Failed to fetch templates:", error);
+      console.error("Error creating template:", error);
     }
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === "allowedEditDays" ? Number(value) : value,
-    }));
-  };
-
-  const openCreateModal = () => {
-    setFormData({
-      name: "",
-      templateId: templates.length > 0 ? templates[0].id : "",
-      allowedEditDays: 7,
-      shopType: shopTypes[0] || "",
-    });
-    setFormMode("create");
-    setIsModalOpen(true);
-  };
-
-  const openEditModal = (shop) => {
-    setFormData({
-      name: shop.name || "",
-      templateId: shop.templateId || "",
-      allowedEditDays: shop.allowedEditDays ?? 7,
-      shopType: shop.shopType || "",
-    });
-    setCurrentShop(shop);
-    setFormMode("edit");
-    setIsModalOpen(true);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleEdit = async (id) => {
+    if (!editValue.trim()) return;
     try {
-      if (formMode === "create") {
-        await createShop(formData);
-      } else {
-        await editShop(formData, currentShop.id);
-      }
-      fetchShops();
-      setIsModalOpen(false);
+      await editTemplate({ name: editValue }, id);
+      setTemplates(
+        templates.map((t) => (t.id === id ? { ...t, name: editValue } : t))
+      );
+      setEditingId(null);
     } catch (error) {
-      console.error("Failed to save shop:", error);
+      console.error("Error editing template:", error);
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this shop?")) {
+    if (window.confirm("Delete this template?")) {
       try {
-        await deleteShop(id);
-        fetchShops();
+        await deleteTemplate(id);
+        setTemplates(templates.filter((t) => t.id !== id));
       } catch (error) {
-        console.error("Failed to delete shop:", error);
+        console.error("Error deleting template:", error);
       }
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex justify-center py-10">
+        <Loader2 className="animate-spin text-blue-500" size={24} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-semibold">Templates</h1>
+      </div>
+
+      <form onSubmit={handleCreate} className="flex gap-2 mb-6">
+        <input
+          type="text"
+          value={newTemplateName}
+          onChange={(e) => setNewTemplateName(e.target.value)}
+          placeholder="New template name"
+          className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          autoFocus
+        />
+        <button
+          type="submit"
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+          disabled={!newTemplateName.trim()}
+        >
+          Add
+        </button>
+      </form>
+
+      <div className="border rounded-lg divide-y">
+        {templates.map((template) => (
+          <div key={template.id} className="p-3 hover:bg-gray-50 group">
+            {editingId === template.id ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  className="flex-1 px-3 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleEdit(template.id);
+                    if (e.key === "Escape") setEditingId(null);
+                  }}
+                />
+                <button
+                  onClick={() => handleEdit(template.id)}
+                  className="p-1 text-green-600 hover:text-green-800"
+                >
+                  <Check size={18} />
+                </button>
+                <button
+                  onClick={() => setEditingId(null)}
+                  className="p-1 text-red-600 hover:text-red-800"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            ) : (
+              <div
+                className="flex justify-between items-center px-2 py-1 hover:bg-gray-100 cursor-pointer"
+                onClick={() => {
+                  setSelectedTemplate(template.id);
+                  setActiveTab(TABS.EXPENSES);
+                }}
+              >
+                <span className="font-medium">{template.name}</span>
+
+                <div className="flex gap-2 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation(); // prevent triggering parent onClick
+                      setEditingId(template.id);
+                      setEditValue(template.name);
+                    }}
+                    className="p-1 text-blue-600 hover:text-blue-800"
+                    title="Edit"
+                  >
+                    <Pencil size={16} />
+                  </button>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation(); // prevent triggering parent onClick
+                      setSelectedTemplate(template.id);
+                      setActiveTab(TABS.EXPENSES);
+                    }}
+                    className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded hover:bg-blue-200"
+                  >
+                    Manage Expenses
+                  </button>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation(); // prevent triggering parent onClick
+                      handleDelete(template.id);
+                    }}
+                    className="p-1 text-red-600 hover:text-red-800"
+                    title="Delete"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const ExpenseList = ({ templateId }) => {
+  const [expenses, setExpenses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState(null);
+  const [editValues, setEditValues] = useState({});
+  const [newExpense, setNewExpense] = useState({
+    name: "",
+    description: "",
+    type: "debit",
+    isDefault: false,
+  });
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
+
+  useEffect(() => {
+    if (templateId) fetchExpenses();
+  }, [templateId]);
+
+  const fetchExpenses = async () => {
+    setLoading(true);
+    try {
+      const response = await getExpenseByTemplateId(templateId);
+      setExpenses(response.data || []);
+    } catch (error) {
+      console.error("Error fetching expenses:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSort = (key) => {
+    let direction = "asc";
+    if (sortConfig.key === key && sortConfig.direction === "asc") {
+      direction = "desc";
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedExpenses = [...expenses].sort((a, b) => {
+    if (!sortConfig.key) return 0;
+
+    const aValue = a[sortConfig.key];
+    const bValue = b[sortConfig.key];
+
+    if (aValue < bValue) {
+      return sortConfig.direction === "asc" ? -1 : 1;
+    }
+    if (aValue > bValue) {
+      return sortConfig.direction === "asc" ? 1 : -1;
+    }
+    return 0;
+  });
+
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    try {
+      await createExpense({ ...newExpense, templateId });
+      await fetchExpenses();
+      setNewExpense({
+        name: "",
+        description: "",
+        type: "debit",
+        isDefault: false,
+      });
+    } catch (error) {
+      console.error("Error creating expense:", error);
+    }
+  };
+
+  const handleEdit = async (id) => {
+    try {
+      await editExpense(editValues, id);
+      await fetchExpenses();
+      setEditingId(null);
+    } catch (error) {
+      console.error("Error editing expense:", error);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Delete this expense?")) {
+      try {
+        await deleteExpense(id);
+        setExpenses(expenses.filter((e) => e.id !== id));
+      } catch (error) {
+        console.error("Error deleting expense:", error);
+      }
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-10">
+        <Loader2 className="animate-spin text-blue-500" size={24} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-semibold">Expense Entries</h1>
+      </div>
+
+      <form
+        onSubmit={handleCreate}
+        className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6"
+      >
+        <input
+          type="text"
+          name="name"
+          value={newExpense.name}
+          onChange={(e) =>
+            setNewExpense({ ...newExpense, name: e.target.value })
+          }
+          placeholder="Name"
+          className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          required
+        />
+        <input
+          type="text"
+          name="description"
+          value={newExpense.description}
+          onChange={(e) =>
+            setNewExpense({ ...newExpense, description: e.target.value })
+          }
+          placeholder="Description"
+          className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <select
+          name="type"
+          value={newExpense.type}
+          onChange={(e) =>
+            setNewExpense({ ...newExpense, type: e.target.value })
+          }
+          className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="debit">Debit</option>
+          <option value="credit">Credit</option>
+        </select>
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="isDefault"
+            checked={newExpense.isDefault}
+            onChange={(e) =>
+              setNewExpense({ ...newExpense, isDefault: e.target.checked })
+            }
+            className="h-4 w-4"
+          />
+          <label htmlFor="isDefault">Default</label>
+          <button
+            type="submit"
+            className="ml-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Add
+          </button>
+        </div>
+      </form>
+
+      {expenses.length === 0 ? (
+        <div className="text-center py-8 text-gray-500">
+          No expenses found. Add your first expense.
+        </div>
+      ) : (
+        <div className="border rounded-lg overflow-hidden">
+          <table className="min-w-full divide-y">
+            <thead className="bg-gray-50">
+              <tr>
+                <th
+                  className="px-4 py-3 text-left text-sm font-medium text-gray-500 cursor-pointer"
+                  onClick={() => handleSort("name")}
+                >
+                  <div className="flex items-center">
+                    Name
+                    <ArrowUpDown className="ml-1" size={14} />
+                  </div>
+                </th>
+                <th
+                  className="px-4 py-3 text-left text-sm font-medium text-gray-500 cursor-pointer"
+                  onClick={() => handleSort("description")}
+                >
+                  <div className="flex items-center">
+                    Description
+                    <ArrowUpDown className="ml-1" size={14} />
+                  </div>
+                </th>
+                <th
+                  className="px-4 py-3 text-left text-sm font-medium text-gray-500 cursor-pointer"
+                  onClick={() => handleSort("type")}
+                >
+                  <div className="flex items-center">
+                    Type
+                    <ArrowUpDown className="ml-1" size={14} />
+                  </div>
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">
+                  Default
+                </th>
+                <th className="px-4 py-3 text-right text-sm font-medium text-gray-500">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {sortedExpenses.map((expense) => (
+                <tr key={expense.id} className="hover:bg-gray-50">
+                  {editingId === expense.id ? (
+                    <>
+                      <td className="px-4 py-3">
+                        <input
+                          type="text"
+                          name="name"
+                          value={editValues.name}
+                          onChange={(e) =>
+                            setEditValues({
+                              ...editValues,
+                              name: e.target.value,
+                            })
+                          }
+                          className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleEdit(expense.id);
+                            if (e.key === "Escape") setEditingId(null);
+                          }}
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <input
+                          type="text"
+                          name="description"
+                          value={editValues.description}
+                          onChange={(e) =>
+                            setEditValues({
+                              ...editValues,
+                              description: e.target.value,
+                            })
+                          }
+                          className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <select
+                          name="type"
+                          value={editValues.type}
+                          onChange={(e) =>
+                            setEditValues({
+                              ...editValues,
+                              type: e.target.value,
+                            })
+                          }
+                          className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="debit">Debit</option>
+                          <option value="credit">Credit</option>
+                        </select>
+                      </td>
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          name="isDefault"
+                          checked={editValues.isDefault}
+                          onChange={(e) =>
+                            setEditValues({
+                              ...editValues,
+                              isDefault: e.target.checked,
+                            })
+                          }
+                          className="h-4 w-4"
+                        />
+                      </td>
+                      <td className="px-4 py-3 text-right space-x-1">
+                        <button
+                          onClick={() => handleEdit(expense.id)}
+                          className="p-1 text-green-600 hover:text-green-800"
+                        >
+                          <Check size={16} />
+                        </button>
+                        <button
+                          onClick={() => setEditingId(null)}
+                          className="p-1 text-red-600 hover:text-red-800"
+                        >
+                          <X size={16} />
+                        </button>
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="px-4 py-3 font-medium">{expense.name}</td>
+                      <td className="px-4 py-3 text-gray-600">
+                        {expense.description}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs ${
+                            expense.type === "credit"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {expense.type}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        {expense.isDefault ? (
+                          <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                            Default
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right space-x-1">
+                        <button
+                          onClick={() => {
+                            setEditingId(expense.id);
+                            setEditValues({
+                              name: expense.name,
+                              description: expense.description,
+                              type: expense.type,
+                              isDefault: expense.isDefault,
+                            });
+                          }}
+                          className="p-1 text-blue-600 hover:text-blue-800"
+                        >
+                          <Pencil size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(expense.id)}
+                          className="p-1 text-red-600 hover:text-red-800"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </td>
+                    </>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ShopList = () => {
+  const [shops, setShops] = useState([]);
+  const [templates, setTemplates] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState(null);
+  const [editValues, setEditValues] = useState({});
+  const [newShop, setNewShop] = useState({
+    name: "",
+    templateId: "",
+    allowedEditDays: 7,
+    shopType: "retail",
+  });
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [shopsRes, templatesRes] = await Promise.all([
+        getAllShop(),
+        getAllTemplate(),
+      ]);
+      setShops(shopsRes.data || []);
+      setTemplates(templatesRes.data || []);
+      if (templatesRes.data?.length > 0) {
+        setNewShop((prev) => ({
+          ...prev,
+          templateId: templatesRes.data[0].id,
+        }));
+      }
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    try {
+      await createShop(newShop);
+      await fetchData();
+      setNewShop({
+        name: "",
+        templateId: templates.length > 0 ? templates[0].id : "",
+        allowedEditDays: 7,
+        shopType: "retail",
+      });
+    } catch (error) {
+      console.error("Error creating shop:", error);
+    }
+  };
+
+  const handleEdit = async (id) => {
+    try {
+      await editShop(editValues, id);
+      await fetchData();
+      setEditingId(null);
+    } catch (error) {
+      console.error("Error editing shop:", error);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Delete this shop?")) {
+      try {
+        await deleteShop(id);
+        setShops(shops.filter((s) => s.id !== id));
+      } catch (error) {
+        console.error("Error deleting shop:", error);
+      }
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-10">
+        <Loader2 className="animate-spin text-blue-500" size={24} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-semibold">Shops</h1>
+      </div>
+
+      <form
+        onSubmit={handleCreate}
+        className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6"
+      >
+        <input
+          type="text"
+          name="name"
+          value={newShop.name}
+          onChange={(e) => setNewShop({ ...newShop, name: e.target.value })}
+          placeholder="Shop name"
+          className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          required
+        />
+        <select
+          name="templateId"
+          value={newShop.templateId}
+          onChange={(e) =>
+            setNewShop({ ...newShop, templateId: e.target.value })
+          }
+          className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          required
+        >
+          {templates.map((template) => (
+            <option key={template.id} value={template.id}>
+              {template.name}
+            </option>
+          ))}
+        </select>
+        <select
+          name="shopType"
+          value={newShop.shopType}
+          onChange={(e) => setNewShop({ ...newShop, shopType: e.target.value })}
+          className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          required
+        >
+          <option value="retail">Retail</option>
+          <option value="wholesale">Wholesale</option>
+        </select>
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            name="allowedEditDays"
+            value={newShop.allowedEditDays}
+            onChange={(e) =>
+              setNewShop({
+                ...newShop,
+                allowedEditDays: parseInt(e.target.value) || 0,
+              })
+            }
+            min="0"
+            className="w-20 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          />
+          <span>days</span>
+          <button
+            type="submit"
+            className="ml-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Add
+          </button>
+        </div>
+      </form>
+
+      {shops.length === 0 ? (
+        <div className="text-center py-8 text-gray-500">
+          No shops found. Add your first shop.
+        </div>
+      ) : (
+        <div className="border rounded-lg overflow-hidden">
+          <table className="min-w-full divide-y">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">
+                  Name
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">
+                  Template
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">
+                  Type
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">
+                  Edit Days
+                </th>
+                <th className="px-4 py-3 text-right text-sm font-medium text-gray-500">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {shops.map((shop) => {
+                const template = templates.find(
+                  (t) => t.id === shop.templateId
+                );
+                return (
+                  <tr key={shop.id} className="hover:bg-gray-50">
+                    {editingId === shop.id ? (
+                      <>
+                        <td className="px-4 py-3">
+                          <input
+                            type="text"
+                            name="name"
+                            value={editValues.name}
+                            onChange={(e) =>
+                              setEditValues({
+                                ...editValues,
+                                name: e.target.value,
+                              })
+                            }
+                            className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleEdit(shop.id);
+                              if (e.key === "Escape") setEditingId(null);
+                            }}
+                          />
+                        </td>
+                        <td className="px-4 py-3">
+                          <select
+                            name="templateId"
+                            value={editValues.templateId}
+                            onChange={(e) =>
+                              setEditValues({
+                                ...editValues,
+                                templateId: e.target.value,
+                              })
+                            }
+                            className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            {templates.map((t) => (
+                              <option key={t.id} value={t.id}>
+                                {t.name}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-4 py-3">
+                          <select
+                            name="shopType"
+                            value={editValues.shopType}
+                            onChange={(e) =>
+                              setEditValues({
+                                ...editValues,
+                                shopType: e.target.value,
+                              })
+                            }
+                            className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="retail">Retail</option>
+                            <option value="wholesale">Wholesale</option>
+                          </select>
+                        </td>
+                        <td className="px-4 py-3">
+                          <input
+                            type="number"
+                            name="allowedEditDays"
+                            value={editValues.allowedEditDays}
+                            onChange={(e) =>
+                              setEditValues({
+                                ...editValues,
+                                allowedEditDays: parseInt(e.target.value) || 0,
+                              })
+                            }
+                            min="0"
+                            className="w-20 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </td>
+                        <td className="px-4 py-3 text-right space-x-1">
+                          <button
+                            onClick={() => handleEdit(shop.id)}
+                            className="p-1 text-green-600 hover:text-green-800"
+                          >
+                            <Check size={16} />
+                          </button>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            className="p-1 text-red-600 hover:text-red-800"
+                          >
+                            <X size={16} />
+                          </button>
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="px-4 py-3 font-medium">{shop.name}</td>
+                        <td className="px-4 py-3 text-gray-600">
+                          {template?.name || `Template ${shop.templateId}`}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="capitalize">{shop.shopType}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          {shop.allowedEditDays} day
+                          {shop.allowedEditDays !== 1 ? "s" : ""}
+                        </td>
+                        <td className="px-4 py-3 text-right space-x-1">
+                          <button
+                            onClick={() => {
+                              setEditingId(shop.id);
+                              setEditValues({
+                                name: shop.name,
+                                templateId: shop.templateId,
+                                shopType: shop.shopType,
+                                allowedEditDays: shop.allowedEditDays,
+                              });
+                            }}
+                            className="p-1 text-blue-600 hover:text-blue-800"
+                          >
+                            <Pencil size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(shop.id)}
+                            className="p-1 text-red-600 hover:text-red-800"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </td>
+                      </>
+                    )}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ExpenseManagement = () => {
+  const [activeTab, setActiveTab] = useState(TABS.TEMPLATES);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
+
   return (
     <>
       <Navbar />
-      <div className="px-6 py-8 max-w-7xl mx-auto">
-        <Modal
-          isModalOpen={isModalOpen}
-          setIsModalOpen={setIsModalOpen}
-          formMode={formMode}
-          formData={formData}
-          handleInputChange={handleInputChange}
-          handleSubmit={handleSubmit}
-          templates={templates}
-          shopTypes={shopTypes}
-        />
-
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Shop Management</h1>
+      <div className="px-4 py-6 max-w-6xl mx-auto">
+        <div className="flex border-b mb-6">
           <button
-            onClick={openCreateModal}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 flex items-center"
+            onClick={() => {
+              setActiveTab(TABS.TEMPLATES);
+              setSelectedTemplate(null);
+            }}
+            className={`px-4 py-2 font-medium ${
+              activeTab === TABS.TEMPLATES
+                ? "border-b-2 border-blue-500 text-blue-600"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
           >
-            <PlusCircle size={18} className="mr-1" />
-            Add Shop
+            Templates
+          </button>
+          <button
+            onClick={() =>
+              activeTab !== TABS.EXPENSES &&
+              selectedTemplate &&
+              setActiveTab(TABS.EXPENSES)
+            }
+            className={`px-4 py-2 font-medium ${
+              activeTab === TABS.EXPENSES
+                ? "border-b-2 border-blue-500 text-blue-600"
+                : !selectedTemplate
+                ? "text-gray-400 cursor-not-allowed"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+            disabled={!selectedTemplate && activeTab !== TABS.EXPENSES}
+          >
+            Expenses
+          </button>
+          <button
+            onClick={() => setActiveTab(TABS.SHOPS)}
+            className={`px-4 py-2 font-medium ${
+              activeTab === TABS.SHOPS
+                ? "border-b-2 border-blue-500 text-blue-600"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Shops
           </button>
         </div>
 
-        {loading ? (
-          <div className="flex justify-center items-center py-10">
-            <Loader2 size={40} className="animate-spin text-blue-600" />
-          </div>
-        ) : shops.length === 0 ? (
-          <div className="bg-white shadow rounded-lg p-8 text-center">
-            <p className="text-gray-500 text-lg">
-              No shops found. Add a new shop to get started.
-            </p>
-          </div>
-        ) : (
-          <div className="bg-white shadow overflow-hidden rounded-lg">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Shop Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Template
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Shop Type
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Allowed Edit Days
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {shops.map((shop) => {
-                  const template = templates.find(
-                    (t) => t.id === shop.templateId
-                  );
-                  return (
-                    <tr key={shop.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                        {shop.name}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        {template?.name || `Template ${shop.templateId}`}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        {shop.shopType}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        {shop.allowedEditDays} day
-                        {shop.allowedEditDays !== 1 ? "s" : ""}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-right space-x-2">
-                        <button
-                          onClick={() => openEditModal(shop)}
-                          className="text-blue-600 hover:text-blue-900 flex items-center"
-                        >
-                          <Pencil size={16} className="mr-1" />
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(shop.id)}
-                          className="text-red-600 hover:text-red-900 flex items-center"
-                        >
-                          <Trash2 size={16} className="mr-1" />
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+        {activeTab === TABS.TEMPLATES && (
+          <TemplateList
+            setSelectedTemplate={setSelectedTemplate}
+            setActiveTab={setActiveTab}
+          />
         )}
+        {activeTab === TABS.EXPENSES && (
+          <ExpenseList templateId={selectedTemplate} />
+        )}
+        {activeTab === TABS.SHOPS && <ShopList />}
       </div>
     </>
   );
 };
 
-export default Shop;
+export default ExpenseManagement;

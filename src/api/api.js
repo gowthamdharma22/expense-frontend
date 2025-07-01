@@ -293,7 +293,9 @@ export const deleteDay = async (dayId) => {
 
 export const getNotesByShopId = async (shopId, filter) => {
   try {
-    const response = await api.get(`transaction/${shopId}?filter=${filter}`);
+    const response = await api.get(
+      `transaction/notes/${shopId}?month=${filter}`
+    );
     return response.data;
   } catch (error) {
     handleError(error);
@@ -324,9 +326,7 @@ export const getExpenseSummaryDetails = async (expenseId, month, shopId) => {
 // day/activeMonths/?shopId=1
 export const getActiveMonths = async (shopId) => {
   try {
-    const response = await api.get(
-      `day/activeMonths?shopId=${shopId}`
-    );
+    const response = await api.get(`day/activeMonths?shopId=${shopId}`);
     return response.data;
   } catch (error) {
     handleError(error);

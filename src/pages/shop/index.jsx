@@ -24,6 +24,10 @@ import {
   createShop,
   editShop,
   deleteShop,
+  createNoteUser,
+  getAllNoteUser,
+  updateNoteUser,
+  deleteNoteUser,
 } from "../../api/api";
 import Navbar from "../../components/nav";
 
@@ -872,6 +876,243 @@ const ShopList = () => {
     </div>
   );
 };
+const NotesUserList = () => {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState(null);
+  const [editValues, setEditValues] = useState({});
+  const [newUser, setNewUser] = useState({
+    name: "",
+    phone: "",
+  });
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const response = await getAllNoteUser();
+      setUsers(response.data || []);
+    } catch (error) {
+      console.error("Error fetching note users:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    try {
+      await createNoteUser(newUser);
+      await fetchUsers();
+      setNewUser({
+        name: "",
+        phone: "",
+      });
+    } catch (error) {
+      console.error("Error creating note user:", error);
+    }
+  };
+
+  const handleEdit = async (id) => {
+    try {
+      await updateNoteUser(id, editValues);
+      await fetchUsers();
+      setEditingId(null);
+    } catch (error) {
+      console.error("Error editing note user:", error);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Delete this user?")) {
+      try {
+        await deleteNoteUser(id);
+        setUsers(users.filter((u) => u.id !== id));
+      } catch (error) {
+        console.error("Error deleting note user:", error);
+      }
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-10">
+        <Loader2 className="animate-spin text-blue-500" size={24} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-semibold">Notes Users</h1>
+      </div>
+
+      <form
+        onSubmit={handleCreate}
+        className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6"
+      >
+        <input
+          type="text"
+          name="name"
+          value={newUser.name}
+          onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+          placeholder="Name"
+          className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          required
+        />
+        <input
+          type="text"
+          name="phone"
+          value={newUser.phone}
+          onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+          placeholder="Phone (optional)"
+          className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <button
+          type="submit"
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+        >
+          Add User
+        </button>
+      </form>
+
+      {users.length === 0 ? (
+        <div className="text-center py-8 text-gray-500">
+          No users found. Add your first note user.
+        </div>
+      ) : (
+        <div className="border rounded-lg overflow-hidden">
+          <table className="min-w-full divide-y">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">
+                  Name
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">
+                  Phone
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">
+                  Created At
+                </th>
+                <th className="px-4 py-3 text-right text-sm font-medium text-gray-500">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {users.map((user) => (
+                <tr key={user.id} className="hover:bg-gray-50">
+                  {editingId === user.id ? (
+                    <>
+                      <td className="px-4 py-3">
+                        <input
+                          type="text"
+                          name="name"
+                          value={editValues.name}
+                          onChange={(e) =>
+                            setEditValues({
+                              ...editValues,
+                              name: e.target.value,
+                            })
+                          }
+                          className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleEdit(user.id);
+                            if (e.key === "Escape") setEditingId(null);
+                          }}
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <input
+                          type="text"
+                          name="phone"
+                          value={editValues.phone}
+                          onChange={(e) =>
+                            setEditValues({
+                              ...editValues,
+                              phone: e.target.value,
+                            })
+                          }
+                          className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 text-sm">
+                        {new Date(user.createdAt).toLocaleString("en-IN", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                          // hour: 'numeric',
+                          // minute: '2-digit',
+                          // hour12: true,
+                        })}
+                      </td>
+                      <td className="px-4 py-3 text-right space-x-1">
+                        <button
+                          onClick={() => handleEdit(user.id)}
+                          className="p-1 text-green-600 hover:text-green-800"
+                        >
+                          <Check size={16} />
+                        </button>
+                        <button
+                          onClick={() => setEditingId(null)}
+                          className="p-1 text-red-600 hover:text-red-800"
+                        >
+                          <X size={16} />
+                        </button>
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="px-4 py-3 font-medium">{user.name}</td>
+                      <td className="px-4 py-3 text-gray-600">
+                        {user.phone || "-"}
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 text-sm">
+                        {new Date(user.createdAt).toLocaleString("en-IN", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                          // hour: "numeric",
+                          // minute: "2-digit",
+                          // hour12: true,
+                        })}
+                      </td>
+                      <td className="px-4 py-3 text-right space-x-1">
+                        <button
+                          onClick={() => {
+                            setEditingId(user.id);
+                            setEditValues({
+                              name: user.name,
+                              phone: user.phone,
+                            });
+                          }}
+                          className="p-1 text-blue-600 hover:text-blue-800"
+                        >
+                          <Pencil size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(user.id)}
+                          className="p-1 text-red-600 hover:text-red-800"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </td>
+                    </>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const ExpenseManagement = () => {
   const [activeTab, setActiveTab] = useState(TABS.TEMPLATES);
@@ -922,6 +1163,16 @@ const ExpenseManagement = () => {
           >
             Shops
           </button>
+          <button
+            onClick={() => setActiveTab(TABS.NOTES_USERS)}
+            className={`px-4 py-2 font-medium ${
+              activeTab === TABS.NOTES_USERS
+                ? "border-b-2 border-blue-500 text-blue-600"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Notes Users
+          </button>
         </div>
 
         {activeTab === TABS.TEMPLATES && (
@@ -934,6 +1185,7 @@ const ExpenseManagement = () => {
           <ExpenseList templateId={selectedTemplate} />
         )}
         {activeTab === TABS.SHOPS && <ShopList />}
+        {activeTab === TABS.NOTES_USERS && <NotesUserList />}
       </div>
     </>
   );

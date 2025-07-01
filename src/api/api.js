@@ -206,7 +206,44 @@ export const adjustTransaction = async (data) => {
     handleError(error);
   }
 };
-export const verifyDayExpense = async (dayId, verified) => {
+
+export const createNoteUser = async (data) => {
+  try {
+    const response = await api.post("notes/user", data);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const getAllNoteUser = async (data) => {
+  try {
+    const response = await api.get("notes/user");
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const updateNoteUser = async (userId, data) => {
+  try {
+    const response = await api.put(`notes/user/${userId}`, data);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const deleteNoteUser = async (userId) => {
+  try {
+    const response = await api.put(`notes/user/${userId}`);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const verifyDay = async (dayId, verified) => {
   try {
     const response = await api.put(`day/${dayId}`, { isVerified: verified });
     return response.data;
@@ -215,9 +252,81 @@ export const verifyDayExpense = async (dayId, verified) => {
   }
 };
 
+export const verifyDayExpense = async (dayExpenseId, status) => {
+  try {
+    const response = await api.put(`day-expense/${dayExpenseId}/verify`, {
+      status,
+    });
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+export const deleteDayExpense = async (dayExpenseId) => {
+  try {
+    const response = await api.delete(`day-expense/${dayExpenseId}`);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+// day-expense/2
+
+export const freezeDay = async (dayId, status) => {
+  try {
+    const response = await api.patch(`day/${dayId}/disableFreeze`, { status });
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const deleteDay = async (dayId) => {
+  try {
+    const response = await api.delete(`day/${dayId}`);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+// day/62/disableFreeze
+
 export const getNotesByShopId = async (shopId, filter) => {
   try {
     const response = await api.get(`transaction/${shopId}?filter=${filter}`);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+//summary
+export const getExpenseSummary = async (month, shopId) => {
+  try {
+    const response = await api.get(`day/summary/${month}?shopId=${shopId}`);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const getExpenseSummaryDetails = async (expenseId, month, shopId) => {
+  try {
+    const response = await api.get(
+      `day-expense/summary/${expenseId}/${month}?shopId=${shopId}`
+    );
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+// day/activeMonths/?shopId=1
+export const getActiveMonths = async (shopId) => {
+  try {
+    const response = await api.get(
+      `day/activeMonths?shopId=${shopId}`
+    );
     return response.data;
   } catch (error) {
     handleError(error);

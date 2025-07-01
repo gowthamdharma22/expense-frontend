@@ -1,4 +1,3 @@
-import React, { useState, useEffect, useRef } from "react";
 import {
   Plus,
   Calendar,
@@ -15,14 +14,18 @@ import {
 import {
   adjustTransaction,
   createDayExpense,
+  freezeDay,
   getDayExpenseByDate,
   getExpenseByShopId,
   updateDayExpense,
-  // verifyDayExpense,
-  // deleteDayExpense,
-  // verifyIndividualExpense,
+  verifyDay,
+  verifyDayExpense,
+  deleteDay,
+  deleteDayExpense,
+  getAllNoteUser,
 } from "../../api/api";
 import { useParams, useSearchParams } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
 
 function MonthlyExpenseSheet() {
   const [templateId, setTemplateId] = useState(0);
@@ -32,6 +35,9 @@ function MonthlyExpenseSheet() {
   const [editingCell, setEditingCell] = useState(null);
   const [editValue, setEditValue] = useState("");
   const [hasScrolled, setHasScrolled] = useState(false);
+  const [selectedExpenses, setSelectedExpenses] = useState({});
+  const [daySelectAll, setDaySelectAll] = useState({});
+  const [notesUser, setNotesUser] = useState([]);
   const dayRefs = useRef({});
   const scrollPositions = useRef({});
   const inputRefs = useRef({});
@@ -42,15 +48,26 @@ function MonthlyExpenseSheet() {
     amount: "",
     description: "",
     type: "debit",
+    userId: "",
   });
 
   const { selectedMonth } = useParams();
   const [searchParams] = useSearchParams();
   const shopId = searchParams.get("shopId");
 
+  const getAllCreditDebitUsers = async () => {
+    try {
+      const res = await getAllNoteUser();
+      setNotesUser(res.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  console.log(notesUser, "No");
   useEffect(() => {
     fetchMonthlyData();
     fetchDefaultExpenses();
+    getAllCreditDebitUsers();
   }, [selectedMonth, shopId]);
 
   useEffect(() => {
@@ -92,9 +109,11 @@ function MonthlyExpenseSheet() {
       console.error("Error fetching default expenses:", error);
     }
   };
-  // Replace the findNextEditableCell function
-  const findNextEditableCell = (currentExpenseId, currentField) => {
-    // Find current expense index and day
+  const findNextEditableCell = (
+    currentExpenseId,
+    currentField,
+    direction = "next"
+  ) => {
     let currentDayIndex = -1;
     let currentExpenseIndex = -1;
 
@@ -111,47 +130,186 @@ function MonthlyExpenseSheet() {
 
     if (currentDayIndex === -1) return null;
 
-    // If current field is description, move to amount of same expense
-    if (currentField === "description") {
-      return {
-        expenseId: currentExpenseId,
-        field: "amount",
-        dayId: monthlyData[currentDayIndex].expenses[currentExpenseIndex].dayId,
-      };
-    }
+    const currentExpense =
+      monthlyData[currentDayIndex].expenses[currentExpenseIndex];
 
-    // If current field is amount, move to next expense's amount
-    if (currentField === "amount") {
-      // Check remaining expenses in current day
-      for (
-        let expenseIndex = currentExpenseIndex + 1;
-        expenseIndex < monthlyData[currentDayIndex].expenses.length;
-        expenseIndex++
-      ) {
-        const expense = monthlyData[currentDayIndex].expenses[expenseIndex];
-        return {
-          expenseId: expense.id,
-          field: "amount",
-          dayId: expense.dayId,
-        };
-      }
+    switch (direction) {
+      case "next":
+        if (currentField === "description") {
+          return {
+            expenseId: currentExpenseId,
+            field: "amount",
+            dayId: currentExpense.dayId,
+          };
+        }
+        if (currentField === "amount") {
+          for (
+            let expenseIndex = currentExpenseIndex + 1;
+            expenseIndex < monthlyData[currentDayIndex].expenses.length;
+            expenseIndex++
+          ) {
+            const expense = monthlyData[currentDayIndex].expenses[expenseIndex];
+            return {
+              expenseId: expense.id,
+              field: "amount",
+              dayId: expense.dayId,
+            };
+          }
 
-      // No more expenses in current day, move to new expense row
-      const currentDay = monthlyData[currentDayIndex];
-      return {
-        expenseId: `new-${currentDay.day.id}`,
-        field: "expenseId",
-        dayId: currentDay.day.id,
-        isNewExpense: true,
-      };
+          const currentDay = monthlyData[currentDayIndex];
+          return {
+            expenseId: `new-${currentDay.day.id}`,
+            field: "expenseId",
+            dayId: currentDay.day.id,
+            isNewExpense: true,
+          };
+        }
+        break;
+
+      case "down":
+        if (currentField === "amount") {
+          for (
+            let expenseIndex = currentExpenseIndex + 1;
+            expenseIndex < monthlyData[currentDayIndex].expenses.length;
+            expenseIndex++
+          ) {
+            const expense = monthlyData[currentDayIndex].expenses[expenseIndex];
+            return {
+              expenseId: expense.id,
+              field: "amount",
+              dayId: expense.dayId,
+            };
+          }
+          for (
+            let dayIndex = currentDayIndex + 1;
+            dayIndex < monthlyData.length;
+            dayIndex++
+          ) {
+            if (monthlyData[dayIndex].expenses.length > 0) {
+              const firstExpense = monthlyData[dayIndex].expenses[0];
+              return {
+                expenseId: firstExpense.id,
+                field: "amount",
+                dayId: firstExpense.dayId,
+              };
+            }
+          }
+        }
+        if (currentField === "description") {
+          for (
+            let expenseIndex = currentExpenseIndex + 1;
+            expenseIndex < monthlyData[currentDayIndex].expenses.length;
+            expenseIndex++
+          ) {
+            const expense = monthlyData[currentDayIndex].expenses[expenseIndex];
+            return {
+              expenseId: expense.id,
+              field: "description",
+              dayId: expense.dayId,
+            };
+          }
+
+          for (
+            let dayIndex = currentDayIndex + 1;
+            dayIndex < monthlyData.length;
+            dayIndex++
+          ) {
+            if (monthlyData[dayIndex].expenses.length > 0) {
+              const firstExpense = monthlyData[dayIndex].expenses[0];
+              return {
+                expenseId: firstExpense.id,
+                field: "description",
+                dayId: firstExpense.dayId,
+              };
+            }
+          }
+        }
+        break;
+
+      case "up":
+        if (currentField === "amount") {
+          if (currentExpenseIndex > 0) {
+            const prevExpense =
+              monthlyData[currentDayIndex].expenses[currentExpenseIndex - 1];
+            return {
+              expenseId: prevExpense.id,
+              field: "amount",
+              dayId: prevExpense.dayId,
+            };
+          }
+
+          for (let dayIndex = currentDayIndex - 1; dayIndex >= 0; dayIndex--) {
+            if (monthlyData[dayIndex].expenses.length > 0) {
+              const lastExpense =
+                monthlyData[dayIndex].expenses[
+                  monthlyData[dayIndex].expenses.length - 1
+                ];
+              return {
+                expenseId: lastExpense.id,
+                field: "amount",
+                dayId: lastExpense.dayId,
+              };
+            }
+          }
+        }
+
+        if (currentField === "description") {
+          if (currentExpenseIndex > 0) {
+            const prevExpense =
+              monthlyData[currentDayIndex].expenses[currentExpenseIndex - 1];
+            return {
+              expenseId: prevExpense.id,
+              field: "description",
+              dayId: prevExpense.dayId,
+            };
+          }
+
+          for (let dayIndex = currentDayIndex - 1; dayIndex >= 0; dayIndex--) {
+            if (monthlyData[dayIndex].expenses.length > 0) {
+              const lastExpense =
+                monthlyData[dayIndex].expenses[
+                  monthlyData[dayIndex].expenses.length - 1
+                ];
+              return {
+                expenseId: lastExpense.id,
+                field: "description",
+                dayId: lastExpense.dayId,
+              };
+            }
+          }
+        }
+        break;
+
+      case "right":
+        if (currentField === "description") {
+          return {
+            expenseId: currentExpenseId,
+            field: "amount",
+            dayId: currentExpense.dayId,
+          };
+        }
+        break;
+
+      case "left":
+        if (currentField === "amount") {
+          return {
+            expenseId: currentExpenseId,
+            field: "description",
+            dayId: currentExpense.dayId,
+          };
+        }
+        break;
     }
 
     return null;
   };
 
-  // Replace the handleCellSave function
-  const handleCellSave = async (expense, field, fromEnterKey = false) => {
-    // Get current and new values
+  const handleCellSave = async (
+    expense,
+    field,
+    fromKeyPress = false,
+    direction = "next"
+  ) => {
     const currentValue =
       field === "description"
         ? expense?.description || expense.expense.description || ""
@@ -160,7 +318,6 @@ function MonthlyExpenseSheet() {
     const newValue =
       field === "description" ? editValue.trim() : parseFloat(editValue || 0);
 
-    // Check if value has actually changed
     const hasChanged =
       field === "description"
         ? editValue.trim() !== (currentValue || "").trim()
@@ -169,7 +326,6 @@ function MonthlyExpenseSheet() {
     const dayId = expense.dayId;
     scrollPositions.current[dayId] = dayRefs.current[dayId]?.scrollTop || 0;
 
-    // Only make API call if value has changed and is not empty
     if (hasChanged && (field === "amount" ? newValue > 0 : newValue !== "")) {
       const payload = {
         shopId: shopId,
@@ -208,14 +364,12 @@ function MonthlyExpenseSheet() {
     setEditingCell(null);
     setEditValue("");
 
-    // Only navigate to next cell if Enter was pressed, not on blur/click
-    if (fromEnterKey) {
-      const nextCell = findNextEditableCell(expense.id, field);
+    if (fromKeyPress) {
+      const nextCell = findNextEditableCell(expense.id, field, direction);
 
       if (nextCell) {
         setTimeout(() => {
           if (nextCell.isNewExpense) {
-            // Moving to new expense row
             const expenseSelect =
               inputRefs.current[`${nextCell.dayId}-expenseId`];
             if (expenseSelect) {
@@ -246,7 +400,6 @@ function MonthlyExpenseSheet() {
       }
     }
 
-    // Restore scroll position
     setTimeout(() => {
       if (dayRefs.current[dayId]) {
         dayRefs.current[dayId].scrollTop = scrollPositions.current[dayId];
@@ -254,16 +407,40 @@ function MonthlyExpenseSheet() {
     }, 0);
   };
 
-  // Replace the handleKeyPress function
   const handleKeyPress = (e, expense, field) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleCellSave(expense, field, true); // Pass true to indicate Enter key was pressed
-    } else if (e.key === "Escape") {
-      handleCellCancel();
-    } else if (e.key === "Tab") {
-      e.preventDefault();
-      handleCellSave(expense, field, true); // Pass true to indicate Tab key was pressed
+    let direction = null;
+
+    switch (e.key) {
+      case "Enter":
+        e.preventDefault();
+        direction = "next";
+        break;
+      case "Tab":
+        e.preventDefault();
+        direction = e.shiftKey ? "up" : "next";
+        break;
+      case "ArrowDown":
+        e.preventDefault();
+        direction = "down";
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        direction = "up";
+        break;
+      case "ArrowRight":
+        e.preventDefault();
+        direction = "right";
+        break;
+      case "ArrowLeft":
+        e.preventDefault();
+        direction = "left";
+        break;
+      default:
+        return; // Don't handle other keys
+    }
+
+    if (direction) {
+      handleCellSave(expense, field, true, direction);
     }
   };
 
@@ -276,14 +453,26 @@ function MonthlyExpenseSheet() {
       const input = inputRefs.current[`${rowId}-${field}`];
       if (input) {
         input.focus();
-        input.select();
+        // input.select();
       }
     }, 50); // Slightly increased timeout for better reliability
   };
+  const handleCellDelete = async (expense) => {
+    try {
+      await deleteDayExpense(expense.id);
 
-  const handleCellCancel = () => {
-    setEditingCell(null);
-    setEditValue("");
+      setMonthlyData((prevData) =>
+        prevData.map((day) => ({
+          ...day,
+          expenses: day.expenses.filter((e) => e.id !== expense.id),
+        }))
+      );
+
+      setEditingCell(null);
+      setEditValue("");
+    } catch (error) {
+      console.error("Error deleting expense:", error);
+    }
   };
 
   const handleAddExpense = async (dayData) => {
@@ -293,27 +482,44 @@ function MonthlyExpenseSheet() {
     const dayId = newExpense.dayId;
     scrollPositions.current[dayId] = dayRefs.current[dayId]?.scrollTop || 0;
 
-    const expenseId = parseInt(newExpense.expenseId);
+    let expenseId;
+    let expenseType;
+
+    // Handle custom credit/debit
+    if (newExpense.expenseId === "custom") {
+      expenseId = newExpense.type === "credit" ? 1 : 2;
+      expenseType = {
+        id: expenseId,
+        name: newExpense.type === "credit" ? "Credit" : "Debit",
+        type: newExpense.type,
+        description: newExpense.description,
+      };
+    } else {
+      expenseId = parseInt(newExpense.expenseId);
+      expenseType = defaultExpenses.find((e) => e.id === expenseId) || {
+        id: expenseId,
+        name: newExpense.type === "credit" ? "Credit" : "Debit",
+        type: newExpense.type,
+        description: newExpense.description,
+      };
+    }
+
     const payload = {
       dayId: newExpense.dayId,
       expenseId: expenseId,
       templateId: templateId,
       amount: parseFloat(newExpense.amount),
       description: newExpense.description,
+      userId: parseInt(newExpense.userId) || "",
     };
 
     try {
       const response = await createDayExpense(payload);
       const updatedData = monthlyData.map((day) => {
         if (day.day.id === newExpense.dayId) {
-          const expenseType = defaultExpenses.find(
-            (e) => e.id === expenseId
-          ) || {
-            id: expenseId,
-            name: newExpense.type === "credit" ? "Credit" : "Debit",
-            type: newExpense.type,
-            description: newExpense.description,
-          };
+          const selectedUser = notesUser.find(
+            (u) => u.id === parseInt(newExpense.userId)
+          );
           return {
             ...day,
             expenses: [
@@ -323,6 +529,8 @@ function MonthlyExpenseSheet() {
                 id: response.data.id,
                 isVerified: false,
                 expense: expenseType,
+                user: selectedUser || "",
+                notesUser: selectedUser || "", // Add this for display
               },
             ],
           };
@@ -336,6 +544,7 @@ function MonthlyExpenseSheet() {
         amount: "",
         description: "",
         type: "debit",
+        userId: "",
       });
 
       setTimeout(() => {
@@ -347,7 +556,6 @@ function MonthlyExpenseSheet() {
       console.error("Error saving expense:", error);
     }
   };
-
   const handleAddAdjust = async (dayData) => {
     if (!newExpense.amount || !newExpense.dayId) return;
 
@@ -413,7 +621,7 @@ function MonthlyExpenseSheet() {
 
   const handleVerifyDay = async (dayData) => {
     try {
-      // await verifyDayExpense(dayData.day.id, !dayData.day.isVerified);
+      await verifyDay(dayData.day.id, !dayData.day.isVerified);
       const updatedData = monthlyData.map((day) => {
         if (day.day.id === dayData.day.id) {
           return {
@@ -431,7 +639,9 @@ function MonthlyExpenseSheet() {
   };
 
   const handleFreezeDay = async (dayData) => {
+    console.log(dayData, "pkl");
     try {
+      await freezeDay(dayData.day.id, dayData.day.isFrozen);
       const updatedData = monthlyData.map((day) => {
         if (day.day.id === dayData.day.id) {
           return {
@@ -453,8 +663,8 @@ function MonthlyExpenseSheet() {
       window.confirm("Are you sure you want to delete this day's expenses?")
     ) {
       try {
-        // await deleteDayExpense(dayId);
-        setMonthlyData(monthlyData.filter((day) => day.day.id !== dayId));
+        await deleteDay(dayId);
+        fetchMonthlyData();
       } catch (err) {
         console.error(err);
         fetchMonthlyData();
@@ -464,7 +674,7 @@ function MonthlyExpenseSheet() {
 
   const handleVerifyExpense = async (expense) => {
     try {
-      // await verifyIndividualExpense(expense.id, !expense.isVerified);
+      await verifyDayExpense(expense.id, !expense.isVerified);
       const updatedData = monthlyData.map((day) => {
         if (day.day.id === expense.dayId) {
           return {
@@ -544,10 +754,62 @@ function MonthlyExpenseSheet() {
     );
   }
 
+  const handleDaySelectAllAndVerify = async (dayId, isSelectingAll) => {
+    const dayExpenses =
+      monthlyData.find((d) => d.day.id === dayId)?.expenses || [];
+
+    const updates = {};
+    const selectedForDay = [];
+
+    dayExpenses.forEach((expense) => {
+      const key = `${dayId}-${expense.id}`;
+      updates[key] = isSelectingAll;
+
+      if (isSelectingAll) {
+        selectedForDay.push(expense);
+      }
+    });
+
+    setSelectedExpenses((prev) => ({
+      ...prev,
+      ...updates,
+    }));
+
+    setDaySelectAll((prev) => ({
+      ...prev,
+      [dayId]: isSelectingAll,
+    }));
+
+    if (dayExpenses.length > 0) {
+      try {
+        await Promise.all(
+          dayExpenses.map((expense) =>
+            verifyDayExpense(expense.id, isSelectingAll)
+          )
+        );
+
+        setMonthlyData((prevData) =>
+          prevData.map((day) =>
+            day.day.id === dayId
+              ? {
+                  ...day,
+                  expenses: day.expenses.map((expense) => ({
+                    ...expense,
+                    isVerified: isSelectingAll,
+                  })),
+                }
+              : day
+          )
+        );
+      } catch (error) {
+        console.error("Error verifying/unverifying expenses:", error);
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 p-6 font-sans">
       <div className="max-w-7xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
-        {/* Header */}
         <div className="bg-gradient-to-r from-blue-500 to-blue-700 p-6 text-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -575,7 +837,6 @@ function MonthlyExpenseSheet() {
           </div>
         </div>
 
-        {/* Monthly Overview Cards */}
         <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 border-b border-gray-200">
           <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
             <div className="flex items-center justify-between">
@@ -614,7 +875,6 @@ function MonthlyExpenseSheet() {
           </div>
         </div>
 
-        {/* Daily Expense Tables */}
         <div className="p-6 space-y-6">
           {monthlyData.map((dayData) => {
             const { creditTotal, debitTotal, total } = calculateDayTotals(
@@ -631,7 +891,6 @@ function MonthlyExpenseSheet() {
                 }`}
                 ref={(el) => (dayRefs.current[dayData.day.id] = el)}
               >
-                {/* Day Header */}
                 <div
                   className={`px-4 py-3 border-b border-gray-200 flex items-center justify-between ${
                     isToday ? "bg-yellow-50" : "bg-gray-50"
@@ -715,11 +974,11 @@ function MonthlyExpenseSheet() {
                           dayData.day.isFrozen || dayData.day.isVerified
                         }
                         className={`px-3 py-1 rounded text-white text-xs font-medium flex items-center space-x-1 bg-red-600 hover:bg-red-700
-                          ${
-                            dayData.day.isFrozen || dayData.day.isVerified
-                              ? "opacity-50 cursor-not-allowed"
-                              : ""
-                          }`}
+                        ${
+                          dayData.day.isFrozen || dayData.day.isVerified
+                            ? "opacity-50 cursor-not-allowed"
+                            : ""
+                        }`}
                       >
                         <Trash2 className="w-3 h-3" />
                         <span>Delete</span>
@@ -728,7 +987,6 @@ function MonthlyExpenseSheet() {
                   </div>
                 </div>
 
-                {/* Day Expenses Table */}
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse">
                     <thead>
@@ -740,7 +998,10 @@ function MonthlyExpenseSheet() {
                           Expense Name
                         </th>
                         <th className="border border-gray-200 px-4 py-2 min-w-[200px]">
-                          Description
+                          Comments
+                        </th>
+                        <th className="border border-gray-200 px-4 py-2 min-w-[150px]">
+                          Notes User
                         </th>
                         <th className="border border-gray-200 px-4 py-2 w-28">
                           Credit (₹)
@@ -751,11 +1012,32 @@ function MonthlyExpenseSheet() {
                         <th className="border border-gray-200 px-4 py-2 w-20">
                           Type
                         </th>
-                        <th className="border border-gray-200 px-4 py-2 w-24">
-                          Status
-                        </th>
                         <th className="border border-gray-200 px-4 py-2 w-32">
                           Actions
+                        </th>
+                        <th className="border border-gray-200 px-4 py-2 w-24">
+                          <div className="flex flex-col items-center space-y-1">
+                            <span>Verify</span>
+                            <input
+                              type="checkbox"
+                              checked={
+                                dayData.expenses.length > 0 &&
+                                dayData.expenses.every(
+                                  (exp) =>
+                                    selectedExpenses[
+                                      `${dayData.day.id}-${exp.id}`
+                                    ]
+                                )
+                              }
+                              onChange={(e) =>
+                                handleDaySelectAllAndVerify(
+                                  dayData.day.id,
+                                  e.target.checked
+                                )
+                              }
+                              className="rounded"
+                            />
+                          </div>
                         </th>
                       </tr>
                     </thead>
@@ -771,29 +1053,27 @@ function MonthlyExpenseSheet() {
                           <td className="border border-gray-200 px-4 py-2 text-sm font-medium text-gray-800">
                             {expense.expense.name}
                           </td>
-                          <td className="border border-gray-200 px-0 py-0">
+                          <td className="border border-gray-200 px-4 py-2 text-sm text-gray-600">
                             {editingCell === `${expense.id}-description` ? (
                               <input
                                 type="text"
                                 value={editValue}
                                 onChange={(e) => setEditValue(e.target.value)}
                                 onBlur={() =>
-                                  handleCellSave(expense, "description", false)
+                                  handleCellSave(expense, "description")
                                 }
                                 onKeyDown={(e) =>
                                   handleKeyPress(e, expense, "description")
                                 }
-                                className="w-full h-full px-3 py-2 border-0 focus:outline-none focus:bg-white text-sm text-gray-600"
+                                className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                                 ref={(el) =>
                                   (inputRefs.current[
                                     `${expense.id}-description`
                                   ] = el)
                                 }
-                                autoFocus
                               />
                             ) : (
                               <div
-                                className="px-3 py-2 cursor-text hover:bg-gray-100 min-h-[38px] text-sm text-gray-600"
                                 onClick={() =>
                                   handleCellClick(
                                     expense.id,
@@ -803,60 +1083,28 @@ function MonthlyExpenseSheet() {
                                       ""
                                   )
                                 }
+                                className="cursor-pointer min-h-[32px] flex items-center"
                               >
                                 {expense.description ||
                                   expense.expense.description ||
-                                  ""}
+                                  "-"}
                               </div>
                             )}
                           </td>
-                          <td className="border border-gray-200 px-0 py-0">
+                          <td className="border border-gray-200 px-4 py-2 text-sm text-center">
+                            {expense.notesUser ? (
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                {expense.notesUser.name}
+                              </span>
+                            ) : (
+                              "-"
+                            )}
+                          </td>
+                          <td className="border border-gray-200 px-4 py-2 text-sm text-green-600 font-medium text-right">
                             {expense.expense.type === "credit" ? (
                               editingCell === `${expense.id}-amount` ? (
                                 <input
-                                  type="number"
-                                  value={editValue}
-                                  onChange={(e) => setEditValue(e.target.value)}
-                                  onBlur={() =>
-                                    handleCellSave(expense, "amount", false)
-                                  }
-                                  onKeyDown={(e) =>
-                                    handleKeyPress(e, expense, "amount")
-                                  }
-                                  className="w-full h-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 text-sm text-green-600 font-medium"
-                                  ref={(el) =>
-                                    (inputRefs.current[`${expense.id}-amount`] =
-                                      el)
-                                  }
-                                  autoFocus
-                                />
-                              ) : (
-                                <div
-                                  className="px-3 py-2 cursor-text hover:bg-gray-100 min-h-[38px] text-sm text-green-600 font-medium"
-                                  onClick={() =>
-                                    handleCellClick(
-                                      expense.id,
-                                      "amount",
-                                      expense.amount
-                                    )
-                                  }
-                                >
-                                  {expense.amount === 0
-                                    ? ""
-                                    : expense.amount.toLocaleString()}
-                                </div>
-                              )
-                            ) : (
-                              <div className="px-3 py-2 text-center text-gray-400 text-sm">
-                                -
-                              </div>
-                            )}
-                          </td>
-                          <td className="border border-gray-200 px-0 py-0">
-                            {expense.expense.type === "debit" ? (
-                              editingCell === `${expense.id}-amount` ? (
-                                <input
-                                  type="number"
+                                  type="text"
                                   value={editValue}
                                   onChange={(e) => setEditValue(e.target.value)}
                                   onBlur={() =>
@@ -865,16 +1113,14 @@ function MonthlyExpenseSheet() {
                                   onKeyDown={(e) =>
                                     handleKeyPress(e, expense, "amount")
                                   }
-                                  className="w-full h-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 text-sm text-red-600 font-medium"
+                                  className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 text-right"
                                   ref={(el) =>
                                     (inputRefs.current[`${expense.id}-amount`] =
                                       el)
                                   }
-                                  autoFocus
                                 />
                               ) : (
                                 <div
-                                  className="px-3 py-2 cursor-text hover:bg-gray-100 min-h-[38px] text-sm text-red-600 font-medium"
                                   onClick={() =>
                                     handleCellClick(
                                       expense.id,
@@ -882,67 +1128,82 @@ function MonthlyExpenseSheet() {
                                       expense.amount
                                     )
                                   }
+                                  className="cursor-pointer"
                                 >
-                                  {expense.amount === 0
-                                    ? ""
-                                    : expense.amount.toLocaleString()}
+                                  {expense.amount.toLocaleString()}
                                 </div>
                               )
                             ) : (
-                              <div className="px-3 py-2 text-center text-gray-400 text-sm">
-                                -
-                              </div>
+                              "-"
+                            )}
+                          </td>
+                          <td className="border border-gray-200 px-4 py-2 text-sm text-red-600 font-medium text-right">
+                            {expense.expense.type === "debit" ? (
+                              editingCell === `${expense.id}-amount` ? (
+                                <input
+                                  type="text"
+                                  value={editValue}
+                                  onChange={(e) => setEditValue(e.target.value)}
+                                  onBlur={() =>
+                                    handleCellSave(expense, "amount")
+                                  }
+                                  onKeyDown={(e) =>
+                                    handleKeyPress(e, expense, "amount")
+                                  }
+                                  className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 text-right"
+                                  ref={(el) =>
+                                    (inputRefs.current[`${expense.id}-amount`] =
+                                      el)
+                                  }
+                                />
+                              ) : (
+                                <div
+                                  onClick={() =>
+                                    handleCellClick(
+                                      expense.id,
+                                      "amount",
+                                      expense.amount
+                                    )
+                                  }
+                                  className="cursor-pointer"
+                                >
+                                  {expense.amount.toLocaleString()}
+                                </div>
+                              )
+                            ) : (
+                              "-"
                             )}
                           </td>
                           <td className="border border-gray-200 px-4 py-2 text-sm text-center">
                             <span
-                              className={
+                              className={`px-2 py-1 rounded-full text-xs font-medium ${
                                 expense.expense.type === "credit"
-                                  ? "text-green-600"
-                                  : "text-red-600"
-                              }
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-red-100 text-red-800"
+                              }`}
                             >
                               {expense.expense.type}
                             </span>
                           </td>
-                          <td className="border border-gray-200 px-4 py-2 text-center">
-                            <button
-                              onClick={() => handleVerifyExpense(expense)}
-                              className={`px-2 py-1 text-xs font-medium rounded ${
-                                expense.isVerified
-                                  ? "bg-green-100 text-green-800 hover:bg-green-200"
-                                  : "bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
-                              }`}
-                            >
-                              {expense.isVerified ? "✓ Verified" : "✗ Verify"}
-                            </button>
-                          </td>
                           <td className="border border-gray-200 px-4 py-2 text-center space-x-2">
                             <button
-                              onClick={() =>
-                                handleCellSave(
-                                  expense,
-                                  editingCell?.includes("amount")
-                                    ? "amount"
-                                    : "description"
-                                )
-                              }
-                              className="p-1 text-blue-600 hover:bg-blue-100 rounded"
-                              title="Save"
-                            >
-                              <Save className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={handleCellCancel}
+                              onClick={() => handleCellDelete(expense)}
                               className="p-1 text-red-600 hover:bg-red-100 rounded"
-                              title="Cancel"
+                              title="Delete"
                             >
-                              <X className="w-4 h-4" />
+                              <Trash2 className="w-4 h-4" />
                             </button>
+                          </td>
+                          <td className="border border-gray-200 px-4 py-2 text-center">
+                            <input
+                              type="checkbox"
+                              checked={expense.isVerified}
+                              onChange={() => handleVerifyExpense(expense)}
+                              className="rounded"
+                            />
                           </td>
                         </tr>
                       ))}
-                      {/* New Expense Row */}
                       <tr className="bg-blue-50">
                         <td className="border border-gray-200 px-4 py-2 text-sm text-center bg-gray-50">
                           {dayData.expenses.length + 1}
@@ -966,7 +1227,7 @@ function MonthlyExpenseSheet() {
                                 ...newExpense,
                                 dayId: dayData.day.id,
                                 expenseId: selectedExpenseId,
-                                type: selectedExpenseType || "debit", // Auto-set type based on selected expense
+                                type: selectedExpenseType || "debit",
                               });
                             }}
                             className="w-full h-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 text-sm bg-white"
@@ -989,7 +1250,7 @@ function MonthlyExpenseSheet() {
                                 {expense.name}
                               </option>
                             ))}
-                            <option value="custom">Custom Credit/Debit</option>
+                            <option value="custom">Credit/Debit</option>
                           </select>
                         </td>
                         <td className="border border-gray-200 px-0 py-0">
@@ -1025,13 +1286,49 @@ function MonthlyExpenseSheet() {
                         </td>
                         <td className="border border-gray-200 px-0 py-0">
                           {newExpense.dayId === dayData.day.id &&
+                          newExpense.expenseId === "custom" ? (
+                            <select
+                              value={newExpense.userId}
+                              onChange={(e) =>
+                                setNewExpense({
+                                  ...newExpense,
+                                  dayId: dayData.day.id,
+                                  userId: e.target.value,
+                                })
+                              }
+                              className="w-full h-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 text-sm bg-white"
+                              ref={(el) =>
+                                (inputRefs.current[`${dayData.day.id}-userId`] =
+                                  el)
+                              }
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  handleAddExpense(dayData); // Changed from handleAddAdjust
+                                }
+                              }}
+                            >
+                              <option value="">Select User</option>
+                              {notesUser.map((user) => (
+                                <option key={user.id} value={user.id}>
+                                  {user.name}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <div className="border-gray-200 px-4 py-2 text-sm">
+                              -
+                            </div>
+                          )}
+                        </td>
+                        <td className="border border-gray-200 px-0 py-0">
+                          {newExpense.dayId === dayData.day.id &&
                           (newExpense.type === "credit" ||
                             getSelectedExpenseType(
                               newExpense.expenseId,
                               dayData.day.id
                             ) === "credit") ? (
                             <input
-                              type="number"
+                              type="text"
                               value={newExpense.amount}
                               onChange={(e) =>
                                 setNewExpense({
@@ -1048,16 +1345,14 @@ function MonthlyExpenseSheet() {
                               }
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") {
-                                  newExpense.expenseId === "custom"
-                                    ? handleAddAdjust(dayData)
-                                    : handleAddExpense(dayData);
+                                  handleAddExpense(dayData);
                                 }
                               }}
                             />
                           ) : (
-                            <div className="px-3 py-2 text-center text-gray-400 text-sm">
+                            <td className="border-gray-200 px-4 py-2 text-sm">
                               -
-                            </div>
+                            </td>
                           )}
                         </td>
                         <td className="border border-gray-200 px-0 py-0">
@@ -1068,7 +1363,7 @@ function MonthlyExpenseSheet() {
                               dayData.day.id
                             ) === "debit") ? (
                             <input
-                              type="number"
+                              type="text"
                               value={newExpense.amount}
                               onChange={(e) =>
                                 setNewExpense({
@@ -1085,16 +1380,14 @@ function MonthlyExpenseSheet() {
                               }
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") {
-                                  newExpense.expenseId === "custom"
-                                    ? handleAddAdjust(dayData)
-                                    : handleAddExpense(dayData);
+                                  handleAddExpense(dayData); // Changed from conditional
                                 }
                               }}
                             />
                           ) : (
-                            <div className="px-3 py-2 text-center text-gray-400 text-sm">
+                            <td className="border-gray-200 px-4 py-2 text-sm">
                               -
-                            </div>
+                            </td>
                           )}
                         </td>
                         <td className="border border-gray-200 px-0 py-0">
@@ -1117,7 +1410,7 @@ function MonthlyExpenseSheet() {
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") {
                                   inputRefs.current[
-                                    `${dayData.day.id}-amount`
+                                    `${dayData.day.id}-userId` // Focus on user dropdown after type selection
                                   ]?.focus();
                                 }
                               }}
@@ -1145,57 +1438,35 @@ function MonthlyExpenseSheet() {
                               </span>
                             </div>
                           ) : (
-                            <div className="px-3 py-2 text-center text-gray-400 text-sm">
+                            <div className="border-gray-200 px-4 py-2 text-sm">
                               -
                             </div>
                           )}
                         </td>
-                        <td className="border border-gray-200 px-4 py-2 text-center">
-                          <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">
-                            ✗
-                          </span>
+                        <td className="border border-gray-200 px-4 py-2 text-sm">
+                          -
                         </td>
-                        <td className="border border-gray-200 px-4 py-2 text-center space-x-2">
-                          <button
-                            onClick={() =>
-                              newExpense.expenseId === "custom"
-                                ? handleAddAdjust(dayData)
-                                : handleAddExpense(dayData)
-                            }
-                            disabled={!newExpense.dayId || !newExpense.amount}
-                            className="p-1 text-blue-600 hover:bg-blue-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Save"
-                          >
-                            <Save className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() =>
-                              setNewExpense({
-                                dayId: null,
-                                expenseId: "",
-                                amount: "",
-                                description: "",
-                                type: "debit",
-                              })
-                            }
-                            className="p-1 text-red-600 hover:bg-red-100 rounded"
-                            title="Clear"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
+                        <td className="border border-gray-200 px-4 py-2 text-sm">
+                          -
                         </td>
                       </tr>
                       {/* Total Row */}
                       <tr className="bg-gray-100 font-semibold">
-                        <td className="border border-gray-200 px-4 py-2 text-center text-sm">
+                        <td className="border border-gray-200 px-4 py-2 text-sm">
                           -
                         </td>
                         <td className="border border-gray-200 px-4 py-2 text-sm">
                           TOTAL
                         </td>
+
                         <td className="border border-gray-200 px-4 py-2 text-sm">
                           -
                         </td>
+
+                        <td className="border border-gray-200 px-4 py-2 text-sm">
+                          -
+                        </td>
+
                         <td className="border border-gray-200 px-4 py-2 text-sm text-green-600">
                           {creditTotal.toLocaleString()}
                         </td>
@@ -1205,37 +1476,42 @@ function MonthlyExpenseSheet() {
                         <td className="border border-gray-200 px-4 py-2 text-sm text-blue-600">
                           {total.toLocaleString()}
                         </td>
-                        <td className="border border-gray-200 px-4 py-2 text-center text-sm">
+                        <td className="border border-gray-200 px-4 py-2 text-sm">
                           -
                         </td>
-                        <td className="border border-gray-200 px-4 py-2 text-center text-sm">
+                        <td className="border border-gray-200 px-4 py-2 text-sm">
                           -
                         </td>
                       </tr>
                       {/* Cash Difference Row */}
                       <tr className="bg-gray-100 font-semibold">
-                        <td className="border border-gray-200 px-4 py-2 text-center text-sm">
+                        <td className="border border-gray-200 px-4 py-2 text-sm">
                           -
                         </td>
                         <td className="border border-gray-200 px-4 py-2 text-sm">
                           CASH DIFFERENCE
                         </td>
+
                         <td className="border border-gray-200 px-4 py-2 text-sm">
                           -
                         </td>
-                        <td className="border border-gray-200 px-4 py-2 text-sm text-gray-400">
+                        <td className="border border-gray-200 px-4 py-2 text-sm">
                           -
                         </td>
-                        <td className="border border-gray-200 px-4 py-2 text-sm text-gray-400">
+
+                        <td className="border border-gray-200 px-4 py-2 text-sm">
                           -
                         </td>
                         <td className="border border-gray-200 px-4 py-2 text-sm text-red-600">
                           {total < 0 ? Math.abs(total).toLocaleString() : "-"}
                         </td>
-                        <td className="border border-gray-200 px-4 py-2 text-center text-sm">
+                        <td className="border border-gray-200 px-4 py-2 text-sm">
                           -
                         </td>
-                        <td className="border border-gray-200 px-4 py-2 text-center text-sm">
+                        <td className="border border-gray-200 px-4 py-2 text-sm">
+                          -
+                        </td>
+                        <td className="border border-gray-200 px-4 py-2 text-sm">
                           -
                         </td>
                       </tr>
@@ -1245,6 +1521,37 @@ function MonthlyExpenseSheet() {
               </div>
             );
           })}
+        </div>
+        <div className="mt-6 bg-white border border-gray-200 rounded-lg p-6 mx-6">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">
+            Overall Summary
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+              <div className="text-sm text-green-600 font-medium">
+                Total Credit
+              </div>
+              <div className="text-xl font-bold text-green-700">
+                ₹{monthlyTotals.totalCredit.toLocaleString()}
+              </div>
+            </div>
+            <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+              <div className="text-sm text-red-600 font-medium">
+                Total Debit
+              </div>
+              <div className="text-xl font-bold text-red-700">
+                ₹{monthlyTotals.totalDebit.toLocaleString()}
+              </div>
+            </div>
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <div className="text-sm text-blue-600 font-medium">
+                Net Amount
+              </div>
+              <div className="text-xl font-bold text-blue-700">
+                ₹{monthlyTotals.netAmount.toLocaleString()}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

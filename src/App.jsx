@@ -11,6 +11,7 @@ import DayExpense from "./pages/dayExpense/index.jsx";
 import ShopList from "./pages/shopList/index.jsx";
 import DayCalender from "./pages/dayCalender/index.jsx";
 import ExpenseNote from "./pages/note/index.jsx";
+import Summary from "./pages/summary/index.jsx";
 
 function AppRoutes() {
   return (
@@ -70,6 +71,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <ExpenseNote />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/summary"
+          element={
+            <ProtectedRoute>
+              <Summary />
             </ProtectedRoute>
           }
         />

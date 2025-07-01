@@ -1078,16 +1078,12 @@ function MonthlyExpenseSheet() {
                                   handleCellClick(
                                     expense.id,
                                     "description",
-                                    expense.description ||
-                                      expense.expense.description ||
-                                      ""
+                                    expense.description || ""
                                   )
                                 }
                                 className="cursor-pointer min-h-[32px] flex items-center"
                               >
-                                {expense.description ||
-                                  expense.expense.description ||
-                                  "-"}
+                                {expense.description || "-"}
                               </div>
                             )}
                           </td>

@@ -30,7 +30,6 @@ export default function FinancialEntryTemplate() {
   const [isNotify, setIsNotify] = useState(false);
   const [newEntry, setNewEntry] = useState({
     name: "",
-    description: "",
     type: "debit",
     templateId: getTemplateId(),
     isDefault: false,
@@ -99,7 +98,6 @@ export default function FinancialEntryTemplate() {
     const editableEntry = {
       id: entry.id,
       name: entry.name,
-      description: entry.description,
       type: entry.type,
       templateId:
         entry.template && entry.template.length > 0
@@ -139,7 +137,6 @@ export default function FinancialEntryTemplate() {
     try {
       const payload = {
         name: editingEntry.name,
-        description: editingEntry.description,
         type: editingEntry.type,
         templateId: editingEntry.templateId,
         isDefault: editingEntry.isDefault,
@@ -185,7 +182,6 @@ export default function FinancialEntryTemplate() {
 
       setNewEntry({
         name: "",
-        description: "",
         type: "debit",
         templateId: getTemplateId(),
         isDefault: false,
@@ -203,7 +199,6 @@ export default function FinancialEntryTemplate() {
     setIsAddingNew(false);
     setNewEntry({
       name: "",
-      description: "",
       type: "debit",
       templateId: getTemplateId(),
       isDefault: false,
@@ -270,18 +265,7 @@ export default function FinancialEntryTemplate() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
-                </label>
-                <input
-                  type="text"
-                  name="description"
-                  value={newEntry.description}
-                  onChange={handleNewEntryChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                />
-              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Type
@@ -368,15 +352,6 @@ export default function FinancialEntryTemplate() {
                   </th>
                   <th
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                    onClick={() => handleSort("description")}
-                  >
-                    <div className="flex items-center">
-                      Description
-                      <ArrowUpDown className="ml-1 h-3 w-3" />
-                    </div>
-                  </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
                     onClick={() => handleSort("type")}
                   >
                     <div className="flex items-center">
@@ -407,15 +382,7 @@ export default function FinancialEntryTemplate() {
                         className="w-full px-2 py-1 border border-gray-300 rounded-md"
                       />
                     </td>
-                    <td className="px-6 py-4">
-                      <input
-                        type="text"
-                        name="description"
-                        value={editingEntry.description}
-                        onChange={handleEditChange}
-                        className="w-full px-2 py-1 border border-gray-300 rounded-md"
-                      />
-                    </td>
+
                     <td className="px-6 py-4">
                       <select
                         name="type"
@@ -471,9 +438,6 @@ export default function FinancialEntryTemplate() {
                         {entry.name}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {entry.description}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
                         <span
                           className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                             entry.type === "credit"
@@ -494,7 +458,6 @@ export default function FinancialEntryTemplate() {
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-
                         <button
                           onClick={() => handleEditClick(entry)}
                           className="text-blue-600 hover:text-blue-900 mr-3"

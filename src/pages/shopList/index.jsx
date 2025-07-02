@@ -26,7 +26,7 @@ const ShopSelection = () => {
   }, []);
 
   const handleShopClick = (shopId) => {
-    nav(`/dayCalender/${shopId}`);
+    nav(`/dayExpense?shopId=${shopId}`);
   };
 
   if (loading) {
@@ -103,7 +103,7 @@ const ShopSelection = () => {
                 There are no shops available at the moment.
               </p>
               <button
-                onClick={()=>nav("/shop")}
+                onClick={() => nav("/shop")}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-300"
               >
                 Create shop

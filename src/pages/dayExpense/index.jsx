@@ -23,11 +23,17 @@ import {
   deleteDay,
   deleteDayExpense,
   getAllNoteUser,
+  getActiveMonths,
 } from "../../api/api";
-import { useParams, useSearchParams } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 
 function MonthlyExpenseSheet() {
+  const [searchParams, setSearchParams] = useState(
+    new URLSearchParams(window.location.search)
+  );
+  const currentMonth = new Date().toISOString().slice(0, 7);
+
+  const initialMonth = searchParams.get("month") || currentMonth;
   const [templateId, setTemplateId] = useState(0);
   const [monthlyData, setMonthlyData] = useState([]);
   const [defaultExpenses, setDefaultExpenses] = useState([]);
@@ -37,7 +43,9 @@ function MonthlyExpenseSheet() {
   const [hasScrolled, setHasScrolled] = useState(false);
   const [selectedExpenses, setSelectedExpenses] = useState({});
   const [daySelectAll, setDaySelectAll] = useState({});
+  const [activeMonths, setActiveMonths] = useState([]);
   const [notesUser, setNotesUser] = useState([]);
+  const [selectedMonth, setSelectedMonth] = useState(initialMonth);
   const dayRefs = useRef({});
   const scrollPositions = useRef({});
   const inputRefs = useRef({});
@@ -51,8 +59,6 @@ function MonthlyExpenseSheet() {
     userId: "",
   });
 
-  const { selectedMonth } = useParams();
-  const [searchParams] = useSearchParams();
   const shopId = searchParams.get("shopId");
 
   const getAllCreditDebitUsers = async () => {
@@ -63,11 +69,21 @@ function MonthlyExpenseSheet() {
       console.log(error);
     }
   };
-  console.log(notesUser, "No");
+
+  const fetchActiveMonths = async () => {
+    try {
+      const response = await getActiveMonths(shopId);
+      setActiveMonths(response.data);
+    } catch (err) {
+      console.error("Failed to fetch active months");
+    }
+  };
+
   useEffect(() => {
     fetchMonthlyData();
     fetchDefaultExpenses();
     getAllCreditDebitUsers();
+    fetchActiveMonths();
   }, [selectedMonth, shopId]);
 
   useEffect(() => {
@@ -85,6 +101,18 @@ function MonthlyExpenseSheet() {
       }
     }
   }, [monthlyData, hasScrolled]);
+
+  const handleMonthChange = (month) => {
+    setSelectedMonth(month);
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set("month", month);
+    setSearchParams(newParams);
+    window.history.pushState(
+      {},
+      "",
+      `${window.location.pathname}?${newParams}`
+    );
+  };
 
   const fetchMonthlyData = async () => {
     setLoading(true);
@@ -709,7 +737,21 @@ function MonthlyExpenseSheet() {
       month: "long",
     });
   };
+  const formatMonth = (monthStr) => {
+    const [year, month] = monthStr.split("-");
+    const date = new Date(year, month - 1);
+    return date.toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
+  };
 
+  const isFutureDate = (dateString) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const date = new Date(dateString);
+    return date > today;
+  };
   const calculateDayTotals = (expenses) => {
     const creditTotal = expenses
       .filter((e) => e.expense.type === "credit")
@@ -836,7 +878,62 @@ function MonthlyExpenseSheet() {
             </div>
           </div>
         </div>
+        <div className="fixed bottom-0 left-0 w-full z-[9999] bg-gradient-to-t from-white via-white to-white/95 backdrop-blur-sm border-t border-slate-200/80 shadow-lg">
+          <div className="pl-5 pr-4 py-2">
+            <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-9 gap-2">
+              {activeMonths.map(({ month }) => {
+                const [mon, yr] = formatMonth(month).split(" ");
+                const isActive = selectedMonth === month;
+                return (
+                  <button
+                    key={month}
+                    onClick={() => handleMonthChange(month)}
+                    className={`group relative flex flex-col items-center justify-center rounded-lg px-2 py-2 text-xs font-medium transition-all duration-200 ease-out transform hover:scale-105 active:scale-95 ${
+                      isActive
+                        ? "bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25 ring-2 ring-blue-400/30"
+                        : "bg-gradient-to-br from-slate-50 to-slate-100 text-slate-700 hover:from-slate-100 hover:to-slate-200 hover:text-slate-800 shadow-sm hover:shadow-md border border-slate-200/50"
+                    }`}
+                  >
+                    {/* Subtle glow effect for active state */}
+                    {isActive && (
+                      <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-blue-400/20 to-blue-600/20 blur-sm -z-10" />
+                    )}
 
+                    {/* Month abbreviation */}
+                    <span
+                      className={`leading-tight font-semibold text-[10px] ${
+                        isActive ? "text-blue-100" : "text-slate-600"
+                      }`}
+                    >
+                      {mon}
+                    </span>
+
+                    {/* Year */}
+                    <span
+                      className={`text-[9px] font-bold leading-tight ${
+                        isActive ? "text-white" : "text-slate-500"
+                      }`}
+                    >
+                      {yr}
+                    </span>
+
+                    {/* Hover indicator */}
+                    <div
+                      className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 w-3 h-0.5 rounded-full transition-all duration-200 ${
+                        isActive
+                          ? "bg-white/60"
+                          : "bg-transparent group-hover:bg-slate-400/60"
+                      }`}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Bottom gradient fade */}
+          <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-slate-200/50 to-transparent" />
+        </div>
         <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 border-b border-gray-200">
           <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
             <div className="flex items-center justify-between">

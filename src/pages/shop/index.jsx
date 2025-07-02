@@ -218,7 +218,6 @@ const ExpenseList = ({ templateId }) => {
   const [editValues, setEditValues] = useState({});
   const [newExpense, setNewExpense] = useState({
     name: "",
-    description: "",
     type: "debit",
     isDefault: false,
   });
@@ -270,7 +269,6 @@ const ExpenseList = ({ templateId }) => {
       await fetchExpenses();
       setNewExpense({
         name: "",
-        description: "",
         type: "debit",
         isDefault: false,
       });
@@ -329,16 +327,7 @@ const ExpenseList = ({ templateId }) => {
           className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           required
         />
-        <input
-          type="text"
-          name="description"
-          value={newExpense.description}
-          onChange={(e) =>
-            setNewExpense({ ...newExpense, description: e.target.value })
-          }
-          placeholder="Description"
-          className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+
         <select
           name="type"
           value={newExpense.type}
@@ -388,15 +377,7 @@ const ExpenseList = ({ templateId }) => {
                     <ArrowUpDown className="ml-1" size={14} />
                   </div>
                 </th>
-                <th
-                  className="px-4 py-3 text-left text-sm font-medium text-gray-500 cursor-pointer"
-                  onClick={() => handleSort("description")}
-                >
-                  <div className="flex items-center">
-                    Description
-                    <ArrowUpDown className="ml-1" size={14} />
-                  </div>
-                </th>
+
                 <th
                   className="px-4 py-3 text-left text-sm font-medium text-gray-500 cursor-pointer"
                   onClick={() => handleSort("type")}
@@ -438,20 +419,7 @@ const ExpenseList = ({ templateId }) => {
                           }}
                         />
                       </td>
-                      <td className="px-4 py-3">
-                        <input
-                          type="text"
-                          name="description"
-                          value={editValues.description}
-                          onChange={(e) =>
-                            setEditValues({
-                              ...editValues,
-                              description: e.target.value,
-                            })
-                          }
-                          className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </td>
+
                       <td className="px-4 py-3">
                         <select
                           name="type"
@@ -500,9 +468,7 @@ const ExpenseList = ({ templateId }) => {
                   ) : (
                     <>
                       <td className="px-4 py-3 font-medium">{expense.name}</td>
-                      <td className="px-4 py-3 text-gray-600">
-                        {expense.description}
-                      </td>
+
                       <td className="px-4 py-3">
                         <span
                           className={`px-2 py-1 rounded-full text-xs ${
@@ -529,7 +495,6 @@ const ExpenseList = ({ templateId }) => {
                             setEditingId(expense.id);
                             setEditValues({
                               name: expense.name,
-                              description: expense.description,
                               type: expense.type,
                               isDefault: expense.isDefault,
                             });

@@ -332,3 +332,18 @@ export const getActiveMonths = async (shopId) => {
     handleError(error);
   }
 };
+export const getAllNotes = async (shopId, month, userId) => {
+  try {
+    const query = [
+      month ? `month=${month}` : "",
+      userId ? `userId=${userId}` : "",
+    ]
+      .filter(Boolean)
+      .join("&");
+
+    const response = await api.get(`transaction/notes/${shopId}?${query}`);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};

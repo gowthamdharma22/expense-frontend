@@ -49,7 +49,13 @@ function MonthlyExpenseSheet() {
   const dayRefs = useRef({});
   const scrollPositions = useRef({});
   const inputRefs = useRef({});
-
+  const [showAdjustModal, setShowAdjustModal] = useState(false);
+  const [adjustmentData, setAdjustmentData] = useState({
+    dayId: null,
+    amount: "",
+    description: "",
+    type: "debit",
+  });
   const [newExpense, setNewExpense] = useState({
     dayId: null,
     expenseId: "",
@@ -167,6 +173,13 @@ function MonthlyExpenseSheet() {
           return {
             expenseId: currentExpenseId,
             field: "amount",
+            dayId: currentExpense.dayId,
+          };
+        }
+        if (currentField === "name") {
+          return {
+            expenseId: currentExpenseId,
+            field: "description",
             dayId: currentExpense.dayId,
           };
         }
@@ -326,6 +339,14 @@ function MonthlyExpenseSheet() {
             dayId: currentExpense.dayId,
           };
         }
+      case "left":
+        if (currentField === "description") {
+          return {
+            expenseId: currentExpenseId,
+            field: "name",
+            dayId: currentExpense.dayId,
+          };
+        }
         break;
     }
 
@@ -338,23 +359,88 @@ function MonthlyExpenseSheet() {
     fromKeyPress = false,
     direction = "next"
   ) => {
+    console.log("exp1", expense);
     const currentValue =
       field === "description"
         ? expense?.description || expense.expense.description || ""
+        : field === "name"
+        ? expense?.expense?.user?.id || expense?.userId || ""
         : expense.amount;
 
     const newValue =
-      field === "description" ? editValue.trim() : parseFloat(editValue || 0);
+      field === "description"
+        ? editValue.trim()
+        : field === "name"
+        ? editValue
+        : parseFloat(editValue || 0);
 
     const hasChanged =
       field === "description"
         ? editValue.trim() !== (currentValue || "").trim()
+        : field === "name"
+        ? editValue !== (currentValue || "").toString()
         : parseFloat(editValue || 0) !== parseFloat(currentValue || 0);
+
+    if (field === "name") {
+      const selectedUser = notesUser.find((u) => u.id == editValue);
+      if (!selectedUser) return;
+
+      const payload = {
+        ...expense,
+        expense: {
+          ...expense.expense,
+          name: selectedUser.name,
+          user: {
+            id: selectedUser.id,
+            name: selectedUser.name,
+          },
+        },
+        userId: selectedUser.id,
+        shopId: shopId,
+      };
+
+      try {
+        await updateDayExpense(expense.id, payload);
+
+        const updatedData = monthlyData.map((day) => {
+          if (day.day.id === expense.dayId) {
+            return {
+              ...day,
+              expenses: day.expenses.map((e) =>
+                e.id === expense.id
+                  ? {
+                      ...e,
+                      expense: {
+                        ...e.expense,
+                        user: {
+                          id: selectedUser.id,
+                          name: selectedUser.name,
+                        },
+                      },
+                      userId: selectedUser.id,
+                    }
+                  : e
+              ),
+            };
+          }
+          return day;
+        });
+        setMonthlyData(updatedData);
+      } catch (error) {
+        console.error("Error saving user:", error);
+        fetchMonthlyData();
+        return;
+      }
+    }
 
     const dayId = expense.dayId;
     scrollPositions.current[dayId] = dayRefs.current[dayId]?.scrollTop || 0;
 
-    if (hasChanged && (field === "amount" ? newValue > 0 : newValue !== "")) {
+    if (
+      hasChanged &&
+      field !== "name" &&
+      (field === "amount" ? newValue > 0 : newValue !== "")
+    ) {
       const payload = {
         shopId: shopId,
         expenseId: expense.expenseId,
@@ -413,6 +499,8 @@ function MonthlyExpenseSheet() {
               const nextCellValue =
                 nextCell.field === "amount"
                   ? nextExpense.amount
+                  : nextCell.field === "name"
+                  ? nextExpense?.expense?.user?.id || nextExpense?.userId || ""
                   : nextExpense.description ||
                     nextExpense.expense.description ||
                     "";
@@ -463,6 +551,7 @@ function MonthlyExpenseSheet() {
         e.preventDefault();
         direction = "left";
         break;
+
       default:
         return; // Don't handle other keys
     }
@@ -543,11 +632,12 @@ function MonthlyExpenseSheet() {
 
     try {
       const response = await createDayExpense(payload);
+      const selectedUser = notesUser.find(
+        (u) => u.id === parseInt(newExpense.userId)
+      );
+
       const updatedData = monthlyData.map((day) => {
         if (day.day.id === newExpense.dayId) {
-          const selectedUser = notesUser.find(
-            (u) => u.id === parseInt(newExpense.userId)
-          );
           return {
             ...day,
             expenses: [
@@ -556,15 +646,25 @@ function MonthlyExpenseSheet() {
                 ...payload,
                 id: response.data.id,
                 isVerified: false,
-                expense: expenseType,
-                user: selectedUser || "",
-                notesUser: selectedUser || "", // Add this for display
+                expense: {
+                  ...expenseType,
+                  // Fix: Properly set user data in expense object
+                  user: selectedUser
+                    ? {
+                        id: selectedUser.id,
+                        name: selectedUser.name,
+                      }
+                    : null,
+                },
+                user: selectedUser || null,
+                userId: selectedUser?.id || null, // Add userId at root level
               },
             ],
           };
         }
         return day;
       });
+
       setMonthlyData(updatedData);
       setNewExpense({
         dayId: null,
@@ -584,24 +684,24 @@ function MonthlyExpenseSheet() {
       console.error("Error saving expense:", error);
     }
   };
-  const handleAddAdjust = async (dayData) => {
-    if (!newExpense.amount || !newExpense.dayId) return;
+  const handleAddAdjust = async (adjustmentData) => {
+    if (!adjustmentData.amount || !adjustmentData.dayId) return;
 
-    const dayId = newExpense.dayId;
+    const dayId = adjustmentData.dayId;
     scrollPositions.current[dayId] = dayRefs.current[dayId]?.scrollTop || 0;
 
     const payload = {
       shopId: shopId,
-      amount: parseFloat(newExpense.amount),
-      description: newExpense.description,
-      type: newExpense.type,
-      dayId: newExpense.dayId,
+      amount: parseFloat(adjustmentData.amount),
+      description: adjustmentData.description,
+      type: adjustmentData.type,
+      dayId: adjustmentData.dayId,
     };
 
     try {
       await adjustTransaction(payload);
       const updatedData = monthlyData.map((day) => {
-        if (day.day.id === newExpense.dayId) {
+        if (day.day.id === adjustmentData.dayId) {
           return {
             ...day,
             expenses: [
@@ -609,17 +709,17 @@ function MonthlyExpenseSheet() {
               {
                 id: Date.now(),
                 ...payload,
-                expenseId: newExpense.type === "credit" ? 1 : 2,
+                expenseId: adjustmentData.type === "credit" ? 1 : 2,
                 templateId: templateId,
                 isVerified: false,
                 expense: {
-                  id: newExpense.type === "credit" ? 1 : 2,
+                  id: adjustmentData.type === "credit" ? 1 : 2,
                   name:
-                    newExpense.type === "credit"
+                    adjustmentData.type === "credit"
                       ? "Adjustment Credit"
                       : "Adjustment Debit",
-                  type: newExpense.type,
-                  description: newExpense.description,
+                  type: adjustmentData.type,
+                  description: adjustmentData.description,
                 },
               },
             ],
@@ -628,9 +728,8 @@ function MonthlyExpenseSheet() {
         return day;
       });
       setMonthlyData(updatedData);
-      setNewExpense({
+      setAdjustmentData({
         dayId: null,
-        expenseId: "",
         amount: "",
         description: "",
         type: "debit",
@@ -646,7 +745,6 @@ function MonthlyExpenseSheet() {
       console.error("Error saving adjustment:", error);
     }
   };
-
   const handleVerifyDay = async (dayData) => {
     try {
       await verifyDay(dayData.day.id, !dayData.day.isVerified);
@@ -934,43 +1032,6 @@ function MonthlyExpenseSheet() {
           {/* Bottom gradient fade */}
           <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-slate-200/50 to-transparent" />
         </div>
-        <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 border-b border-gray-200">
-          <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-green-600 font-medium">
-                  Total Credit
-                </p>
-                <p className="text-xl font-bold text-green-700">
-                  ₹{monthlyTotals.totalCredit.toLocaleString()}
-                </p>
-              </div>
-              <TrendingUp className="w-6 h-6 text-green-500" />
-            </div>
-          </div>
-          <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-red-600 font-medium">Total Debit</p>
-                <p className="text-xl font-bold text-red-700">
-                  ₹{monthlyTotals.totalDebit.toLocaleString()}
-                </p>
-              </div>
-              <TrendingDown className="w-6 h-6 text-red-500" />
-            </div>
-          </div>
-          <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-blue-600 font-medium">Net Amount</p>
-                <p className="text-xl font-bold text-blue-700">
-                  ₹{monthlyTotals.netAmount.toLocaleString()}
-                </p>
-              </div>
-              <DollarSign className="w-6 h-6 text-blue-500" />
-            </div>
-          </div>
-        </div>
 
         <div className="p-6 space-y-6">
           {monthlyData.map((dayData) => {
@@ -1064,6 +1125,29 @@ function MonthlyExpenseSheet() {
                         <span>
                           {dayData.day.isFrozen ? "Unfreeze" : "Freeze"}
                         </span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setAdjustmentData({
+                            dayId: dayData.day.id,
+                            amount: "",
+                            description: "",
+                            type: "debit",
+                          });
+                          setShowAdjustModal(true);
+                        }}
+                        disabled={
+                          dayData.day.isFrozen || dayData.day.isVerified
+                        }
+                        className={`px-3 py-1 rounded text-white text-xs font-medium flex items-center space-x-1 bg-purple-600 hover:bg-purple-700
+  ${
+    dayData.day.isFrozen || dayData.day.isVerified
+      ? "opacity-50 cursor-not-allowed"
+      : ""
+  }`}
+                      >
+                        <Plus className="w-3 h-3" />
+                        <span>Adjust</span>
                       </button>
                       <button
                         onClick={() => handleDeleteDay(dayData.day.id)}
@@ -1185,12 +1269,50 @@ function MonthlyExpenseSheet() {
                             )}
                           </td>
                           <td className="border border-gray-200 px-4 py-2 text-sm text-center">
-                            {expense.notesUser ? (
-                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                                {expense.notesUser.name}
-                              </span>
+                            {editingCell === `${expense.id}-name` ? (
+                              <select
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() => handleCellSave(expense, "name")}
+                                onKeyDown={(e) =>
+                                  handleKeyPress(e, expense, "name")
+                                }
+                                className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                ref={(el) =>
+                                  (inputRefs.current[`${expense.id}-name`] = el)
+                                }
+                                autoFocus
+                              >
+                                <option value="">Select user</option>
+                                {notesUser.map((user) => (
+                                  <option key={user.id} value={user.id}>
+                                    {user.name}
+                                  </option>
+                                ))}
+                              </select>
                             ) : (
-                              "-"
+                              <div
+                                onClick={() =>
+                                  handleCellClick(
+                                    expense.id,
+                                    "name",
+                                    expense.expense?.user?.id ||
+                                      expense.userId ||
+                                      "" // Fixed: Use user ID instead of name
+                                  )
+                                }
+                                className="cursor-pointer min-h-[32px] flex items-center justify-center"
+                              >
+                                {expense.expense?.user?.name ||
+                                expense.notesUser?.name ? (
+                                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                    {expense.expense?.user?.name ||
+                                      expense.notesUser?.name}
+                                  </span>
+                                ) : (
+                                  "-"
+                                )}
+                              </div>
                             )}
                           </td>
                           <td className="border border-gray-200 px-4 py-2 text-sm text-green-600 font-medium text-right">
@@ -1615,38 +1737,98 @@ function MonthlyExpenseSheet() {
             );
           })}
         </div>
-        <div className="mt-6 bg-white border border-gray-200 rounded-lg p-6 mx-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">
-            Overall Summary
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-              <div className="text-sm text-green-600 font-medium">
-                Total Credit
-              </div>
-              <div className="text-xl font-bold text-green-700">
-                ₹{monthlyTotals.totalCredit.toLocaleString()}
-              </div>
+      </div>
+      {/* Adjustment Modal */}
+      {showAdjustModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Add Adjustment</h3>
+              <button
+                onClick={() => setShowAdjustModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            <div className="bg-red-50 p-4 rounded-lg border border-red-200">
-              <div className="text-sm text-red-600 font-medium">
-                Total Debit
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Type
+                </label>
+                <select
+                  value={adjustmentData.type}
+                  onChange={(e) =>
+                    setAdjustmentData({
+                      ...adjustmentData,
+                      type: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="debit">Debit</option>
+                  <option value="credit">Credit</option>
+                </select>
               </div>
-              <div className="text-xl font-bold text-red-700">
-                ₹{monthlyTotals.totalDebit.toLocaleString()}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Amount (₹)
+                </label>
+                <input
+                  type="number"
+                  value={adjustmentData.amount}
+                  onChange={(e) =>
+                    setAdjustmentData({
+                      ...adjustmentData,
+                      amount: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter amount"
+                />
               </div>
-            </div>
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-              <div className="text-sm text-blue-600 font-medium">
-                Net Amount
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
+                <input
+                  type="text"
+                  value={adjustmentData.description}
+                  onChange={(e) =>
+                    setAdjustmentData({
+                      ...adjustmentData,
+                      description: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter description"
+                />
               </div>
-              <div className="text-xl font-bold text-blue-700">
-                ₹{monthlyTotals.netAmount.toLocaleString()}
+
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  onClick={() => setShowAdjustModal(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    handleAddAdjust(adjustmentData);
+                    setShowAdjustModal(false);
+                  }}
+                  className="px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Add Adjustment
+                </button>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

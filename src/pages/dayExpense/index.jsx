@@ -362,7 +362,7 @@ function MonthlyExpenseSheet() {
     console.log("exp1", expense);
     const currentValue =
       field === "description"
-        ? expense?.description || expense.expense.description || ""
+        ? expense?.description || ""
         : field === "name"
         ? expense?.expense?.user?.id || expense?.userId || ""
         : expense.amount;
@@ -447,10 +447,7 @@ function MonthlyExpenseSheet() {
         dayId: expense.dayId,
         templateId: expense.templateId,
         amount: field === "amount" ? newValue : expense.amount,
-        description:
-          field === "description"
-            ? newValue
-            : expense.description || expense.expense.description,
+        description: field === "description" ? newValue : expense.description,
       };
 
       try {
@@ -501,9 +498,7 @@ function MonthlyExpenseSheet() {
                   ? nextExpense.amount
                   : nextCell.field === "name"
                   ? nextExpense?.expense?.user?.id || nextExpense?.userId || ""
-                  : nextExpense.description ||
-                    nextExpense.expense.description ||
-                    "";
+                  : nextExpense.description || "";
 
               handleCellClick(
                 nextCell.expenseId,

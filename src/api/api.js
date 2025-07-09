@@ -347,3 +347,12 @@ export const getAllNotes = async (shopId, month, userId) => {
     handleError(error);
   }
 };
+
+export const getAllActivity = async (data) => {
+  try {
+    const response = await api.get("/activity");
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};

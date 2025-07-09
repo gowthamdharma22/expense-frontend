@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import {
   getActiveMonths,
+  getAllActivity,
   getAllNotes,
   getExpenseSummary,
   getExpenseSummaryDetails,
@@ -629,6 +630,308 @@ const ExpenseSummary = ({ selectedMonth, shopId }) => {
   );
 };
 
+const ActivityLogs = ({ selectedMonth, shopId }) => {
+  const [allActivities, setAllActivities] = useState([]);
+  const [activities, setActivities] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [filters, setFilters] = useState({
+    role: "",
+    action: "",
+    email: "",
+    fromDate: "",
+    toDate: "",
+  });
+
+  // Fetch once on mount or when month/shopId changes
+  useEffect(() => {
+    fetchActivities();
+  }, [selectedMonth, shopId]);
+
+  // Apply frontend-only filtering
+  useEffect(() => {
+    const filtered = allActivities.filter((activity) => {
+      const { role, action, email, fromDate, toDate } = filters;
+
+      const matchesRole = !role || activity.role === role;
+      const matchesAction =
+        !action ||
+        activity.action?.toLowerCase().includes(action.toLowerCase());
+      const matchesEmail =
+        !email || activity.email?.toLowerCase().includes(email.toLowerCase());
+
+      const activityDate = new Date(activity.createdAt);
+      const matchesFromDate = !fromDate || new Date(fromDate) <= activityDate;
+      const matchesToDate =
+        !toDate || activityDate <= new Date(toDate + "T23:59:59");
+
+      return (
+        matchesRole &&
+        matchesAction &&
+        matchesEmail &&
+        matchesFromDate &&
+        matchesToDate
+      );
+    });
+
+    setActivities(filtered);
+  }, [filters, allActivities]);
+
+  const fetchActivities = async () => {
+    setLoading(true);
+    try {
+      const response = await getAllActivity(shopId, selectedMonth); // no filters passed
+      setAllActivities(response || []);
+    } catch (err) {
+      console.error("Failed to fetch activity logs", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFilterChange = (key, value) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      role: "",
+      action: "",
+      email: "",
+      fromDate: "",
+      toDate: "",
+    });
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const getRoleColor = (role) => {
+    switch (role) {
+      case "admin":
+        return "bg-purple-100 text-purple-800";
+      case "user":
+        return "bg-blue-100 text-blue-800";
+      case "manager":
+        return "bg-green-100 text-green-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const getActionIcon = (action) => {
+    if (action?.includes("login")) return "🔐";
+    if (action?.includes("create")) return "➕";
+    if (action?.includes("update")) return "✏️";
+    if (action?.includes("delete")) return "🗑️";
+    return "📋";
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <div className="w-6 h-6 border-2 border-purple-600 border-t-transparent rounded-full animate-spin mb-3"></div>
+        <p className="text-gray-600 text-sm">Loading activity logs...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Summary Card */}
+      <div className="bg-gradient-to-r from-purple-600 to-purple-700 rounded-xl p-6 text-white shadow-md">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                <Activity className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-purple-100 text-xs font-medium">
+                  Total Activities
+                </p>
+                <p className="text-xl font-bold">{activities.length}</p>
+              </div>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-purple-100 text-xs">This Month</p>
+            <p className="text-lg font-bold">{selectedMonth}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters Section */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-gray-100 rounded-lg">
+              <Activity className="w-4 h-4 text-gray-600" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900">
+                Activity Filters
+              </h3>
+              <p className="text-gray-600 text-xs">
+                Filter activities by role, action, or user
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={clearFilters}
+            className="px-3 py-1 text-xs font-medium text-gray-600 hover:text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            Clear Filters
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Role
+            </label>
+            <select
+              value={filters.role}
+              onChange={(e) => handleFilterChange("role", e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+            >
+              <option value="">All Roles</option>
+              <option value="admin">Admin</option>
+              <option value="user">User</option>
+              <option value="manager">Manager</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Action
+            </label>
+            <input
+              type="text"
+              value={filters.action}
+              onChange={(e) => handleFilterChange("action", e.target.value)}
+              placeholder="Search actions..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Email
+            </label>
+            <input
+              type="text"
+              value={filters.email}
+              onChange={(e) => handleFilterChange("email", e.target.value)}
+              placeholder="Search by email..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              From Date
+            </label>
+            <input
+              type="date"
+              value={filters.fromDate}
+              onChange={(e) => handleFilterChange("fromDate", e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              To Date
+            </label>
+            <input
+              type="date"
+              value={filters.toDate}
+              onChange={(e) => handleFilterChange("toDate", e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Activity List */}
+      {activities.length > 0 ? (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <h3 className="text-base font-semibold text-gray-900 flex items-center">
+              <Activity className="w-4 h-4 mr-2 text-purple-600" />
+              Activity Timeline
+            </h3>
+            <p className="text-gray-600 mt-1 text-xs">
+              Recent activities in your system
+            </p>
+          </div>
+
+          <div className="divide-y divide-gray-50 max-h-96 overflow-y-auto">
+            {activities.map((activity, index) => (
+              <div
+                key={activity._id || index}
+                className="px-6 py-4 hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start space-x-3">
+                    <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center text-sm">
+                      {getActionIcon(activity.action)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <span className="text-sm font-medium text-gray-900">
+                          {activity.email}
+                        </span>
+                        <span
+                          className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(
+                            activity.role
+                          )}`}
+                        >
+                          {activity.role}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-1">
+                        {activity.action}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {formatDate(activity.createdAt)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="inline-flex items-center px-2 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-700">
+                      {activity.role}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+            <Activity className="w-6 h-6 text-gray-400" />
+          </div>
+          <h3 className="text-sm font-medium text-gray-900 mb-1">
+            No Activities Found
+          </h3>
+          <p className="text-gray-500 text-xs">
+            No activity logs available for the selected month and filters.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Main Component
 const ExpensesDashboard = () => {
   const [searchParams, setSearchParams] = useState(
@@ -723,6 +1026,19 @@ const ExpensesDashboard = () => {
                   <span>Customer Accounts</span>
                 </div>
               </button>
+              <button
+                className={`flex-1 px-6 py-4 text-sm font-semibold border-b-2 transition-all duration-300 ${
+                  activeTab === "activity"
+                    ? "border-blue-500 text-blue-600 bg-blue-50"
+                    : "border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                }`}
+                onClick={() => handleTabChange("activity")}
+              >
+                <div className="flex items-center justify-center space-x-2">
+                  <Activity className="w-4 h-4" />
+                  <span>Activity Logs</span>
+                </div>
+              </button>
             </div>
           </div>
         </div>
@@ -731,52 +1047,53 @@ const ExpensesDashboard = () => {
       {/* Content container with padding to account for fixed navbar height */}
       <div className="pt-24 pb-6 max-w-6xl mx-auto px-4">
         {/* Month Selection */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 mb-6 overflow-hidden p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Calendar className="w-4 h-4 text-blue-600" />
+        {activeTab != "activity" && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 mb-6 overflow-hidden p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Calendar className="w-4 h-4 text-blue-600" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-semibold text-gray-900">
+                    Select Month
+                  </h2>
+                  <p className="text-gray-600 text-xs">
+                    Choose a month to view data
+                  </p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-sm font-semibold text-gray-900">
-                  Select Month
-                </h2>
-                <p className="text-gray-600 text-xs">
-                  Choose a month to view data
+              <div className="text-right">
+                <p className="text-xs text-gray-500">Currently viewing</p>
+                <p className="text-sm font-semibold text-gray-900">
+                  {formatMonth(selectedMonth)}
                 </p>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-xs text-gray-500">Currently viewing</p>
-              <p className="text-sm font-semibold text-gray-900">
-                {formatMonth(selectedMonth)}
-              </p>
+
+            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+              {activeMonths.map(({ month }) => {
+                const [mon, yr] = formatMonth(month).split(" ");
+                const isActive = selectedMonth === month;
+
+                return (
+                  <button
+                    key={month}
+                    onClick={() => handleMonthChange(month)}
+                    className={`p-2 rounded text-xs font-medium text-center transition ${
+                      isActive
+                        ? "bg-blue-600 text-white shadow scale-105"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    <div className="opacity-70">{mon}</div>
+                    <div className="text-sm font-bold">{yr}</div>
+                  </button>
+                );
+              })}
             </div>
           </div>
-
-          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-            {activeMonths.map(({ month }) => {
-              const [mon, yr] = formatMonth(month).split(" ");
-              const isActive = selectedMonth === month;
-
-              return (
-                <button
-                  key={month}
-                  onClick={() => handleMonthChange(month)}
-                  className={`p-2 rounded text-xs font-medium text-center transition ${
-                    isActive
-                      ? "bg-blue-600 text-white shadow scale-105"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  <div className="opacity-70">{mon}</div>
-                  <div className="text-sm font-bold">{yr}</div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
+        )}
         {/* Tab Content */}
         <div className="transition-all duration-300">
           {activeTab === "expenses" && (
@@ -784,6 +1101,9 @@ const ExpensesDashboard = () => {
           )}
           {activeTab === "notes" && (
             <CreditDebitNotes selectedMonth={selectedMonth} shopId={shopId} />
+          )}
+          {activeTab === "activity" && (
+            <ActivityLogs selectedMonth={selectedMonth} shopId={shopId} />
           )}
         </div>
       </div>

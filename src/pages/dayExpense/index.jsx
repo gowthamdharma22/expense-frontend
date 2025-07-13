@@ -33,6 +33,8 @@ function MonthlyExpenseSheet() {
     new URLSearchParams(window.location.search)
   );
   const currentMonth = new Date().toISOString().slice(0, 7);
+  const role = localStorage.getItem("role");
+  const isAdmin = role === "admin";
 
   const initialMonth = searchParams.get("month") || currentMonth;
   const [templateId, setTemplateId] = useState(0);
@@ -1038,7 +1040,7 @@ function MonthlyExpenseSheet() {
 
   const monthlyTotals = calculateMonthlyTotals();
 
-  console.log(monthlyTotals,"hu")
+  console.log(monthlyTotals, "hu");
 
   const getSelectedExpenseType = (expenseId, dayId) => {
     if (!expenseId || expenseId === "custom") return null;
@@ -1143,9 +1145,7 @@ function MonthlyExpenseSheet() {
   };
   return (
     <div className="min-h-screen bg-gray-100 p-6 font-sans">
-      <ModernNavbar
-        monthlyExpense={monthlyTotals.netAmount || 0}
-      />
+      <ModernNavbar monthlyExpense={monthlyTotals.netAmount || 0} />
       <div className="max-w-7xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden mt-20">
         <div className="fixed bottom-0 left-0 w-full z-[9999] bg-gradient-to-t from-white via-white to-white/95 backdrop-blur-sm border-t border-slate-200/80 shadow-lg">
           <div className="pl-5 pr-4 py-2">
@@ -1261,80 +1261,86 @@ function MonthlyExpenseSheet() {
                       >
                         {dayData.day.isVerified ? "Verified" : "Not Verified"}
                       </span>
-                      <button
-                        onClick={() => handleVerifyDay(dayData)}
-                        disabled={dayData.day.isFrozen}
-                        className={`px-3 py-1 rounded text-white text-xs font-medium flex items-center space-x-1 ${
-                          dayData.day.isVerified
-                            ? "bg-green-600 hover:bg-green-700"
-                            : "bg-blue-600 hover:bg-blue-700"
-                        } ${
-                          dayData.day.isFrozen
-                            ? "opacity-50 cursor-not-allowed"
-                            : ""
-                        }`}
-                      >
-                        <Check className="w-3 h-3" />
-                        <span>
-                          {dayData.day.isVerified ? "Unverify" : "Verify"}
-                        </span>
-                      </button>
-                      <button
-                        onClick={() => handleFreezeDay(dayData)}
-                        disabled={dayData.day.isVerified}
-                        className={`px-3 py-1 rounded text-white text-xs font-medium flex items-center space-x-1 ${
-                          dayData.day.isFrozen
-                            ? "bg-gray-600 hover:bg-gray-700"
-                            : "bg-blue-600 hover:bg-blue-700"
-                        } ${
-                          dayData.day.isVerified
-                            ? "opacity-50 cursor-not-allowed"
-                            : ""
-                        }`}
-                      >
-                        <Lock className="w-3 h-3" />
-                        <span>
-                          {dayData.day.isFrozen ? "Unfreeze" : "Freeze"}
-                        </span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          setAdjustmentData({
-                            dayId: dayData.day.id,
-                            amount: "",
-                            description: "",
-                            type: "debit",
-                          });
-                          setShowAdjustModal(true);
-                        }}
-                        disabled={
-                          dayData.day.isFrozen || dayData.day.isVerified
-                        }
-                        className={`px-3 py-1 rounded text-white text-xs font-medium flex items-center space-x-1 bg-purple-600 hover:bg-purple-700
-  ${
-    dayData.day.isFrozen || dayData.day.isVerified
-      ? "opacity-50 cursor-not-allowed"
-      : ""
-  }`}
-                      >
-                        <Plus className="w-3 h-3" />
-                        <span>Adjust</span>
-                      </button>
-                      <button
-                        onClick={() => handleDeleteDay(dayData.day.id)}
-                        disabled={
-                          dayData.day.isFrozen || dayData.day.isVerified
-                        }
-                        className={`px-3 py-1 rounded text-white text-xs font-medium flex items-center space-x-1 bg-red-600 hover:bg-red-700
+                      {/* isadmin */}
+                      {isAdmin && (
+                        <>
+                          <button
+                            onClick={() => handleVerifyDay(dayData)}
+                            disabled={dayData.day.isFrozen}
+                            className={`px-3 py-1 rounded text-white text-xs font-medium flex items-center space-x-1 ${
+                              dayData.day.isVerified
+                                ? "bg-green-600 hover:bg-green-700"
+                                : "bg-blue-600 hover:bg-blue-700"
+                            } ${
+                              dayData.day.isFrozen
+                                ? "opacity-50 cursor-not-allowed"
+                                : ""
+                            }`}
+                          >
+                            <Check className="w-3 h-3" />
+                            <span>
+                              {dayData.day.isVerified ? "Unverify" : "Verify"}
+                            </span>
+                          </button>
+
+                          <button
+                            onClick={() => handleFreezeDay(dayData)}
+                            disabled={dayData.day.isVerified}
+                            className={`px-3 py-1 rounded text-white text-xs font-medium flex items-center space-x-1 ${
+                              dayData.day.isFrozen
+                                ? "bg-gray-600 hover:bg-gray-700"
+                                : "bg-blue-600 hover:bg-blue-700"
+                            } ${
+                              dayData.day.isVerified
+                                ? "opacity-50 cursor-not-allowed"
+                                : ""
+                            }`}
+                          >
+                            <Lock className="w-3 h-3" />
+                            <span>
+                              {dayData.day.isFrozen ? "Unfreeze" : "Freeze"}
+                            </span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setAdjustmentData({
+                                dayId: dayData.day.id,
+                                amount: "",
+                                description: "",
+                                type: "debit",
+                              });
+                              setShowAdjustModal(true);
+                            }}
+                            disabled={
+                              dayData.day.isFrozen || dayData.day.isVerified
+                            }
+                            className={`px-3 py-1 rounded text-white text-xs font-medium flex items-center space-x-1 bg-purple-600 hover:bg-purple-700
+                            ${
+                              dayData.day.isFrozen || dayData.day.isVerified
+                                ? "opacity-50 cursor-not-allowed"
+                                : ""
+                            }`}
+                          >
+                            <Plus className="w-3 h-3" />
+                            <span>Adjust</span>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteDay(dayData.day.id)}
+                            disabled={
+                              dayData.day.isFrozen || dayData.day.isVerified
+                            }
+                            className={`px-3 py-1 rounded text-white text-xs font-medium flex items-center space-x-1 bg-red-600 hover:bg-red-700
                         ${
                           dayData.day.isFrozen || dayData.day.isVerified
                             ? "opacity-50 cursor-not-allowed"
                             : ""
                         }`}
-                      >
-                        <Trash2 className="w-3 h-3" />
-                        <span>Delete</span>
-                      </button>
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            <span>Delete</span>
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1364,33 +1370,37 @@ function MonthlyExpenseSheet() {
                         <th className="border border-gray-200 px-4 py-2 w-20">
                           Type
                         </th>
-                        <th className="border border-gray-200 px-4 py-2 w-32">
-                          Actions
-                        </th>
-                        <th className="border border-gray-200 px-4 py-2 w-24">
-                          <div className="flex flex-col items-center space-y-1">
-                            <span>Verify</span>
-                            <input
-                              type="checkbox"
-                              checked={
-                                dayData.expenses.length > 0 &&
-                                dayData.expenses.every(
-                                  (exp) =>
-                                    selectedExpenses[
-                                      `${dayData.day.id}-${exp.id}`
-                                    ]
-                                )
-                              }
-                              onChange={(e) =>
-                                handleDaySelectAllAndVerify(
-                                  dayData.day.id,
-                                  e.target.checked
-                                )
-                              }
-                              className="rounded"
-                            />
-                          </div>
-                        </th>
+                        {isAdmin && (
+                          <>
+                            <th className="border border-gray-200 px-4 py-2 w-32">
+                              Actions
+                            </th>
+                            <th className="border border-gray-200 px-4 py-2 w-24">
+                              <div className="flex flex-col items-center space-y-1">
+                                <span>Verify</span>
+                                <input
+                                  type="checkbox"
+                                  checked={
+                                    dayData.expenses.length > 0 &&
+                                    dayData.expenses.every(
+                                      (exp) =>
+                                        selectedExpenses[
+                                          `${dayData.day.id}-${exp.id}`
+                                        ]
+                                    )
+                                  }
+                                  onChange={(e) =>
+                                    handleDaySelectAllAndVerify(
+                                      dayData.day.id,
+                                      e.target.checked
+                                    )
+                                  }
+                                  className="rounded"
+                                />
+                              </div>
+                            </th>
+                          </>
+                        )}
                       </tr>
                     </thead>
                     <tbody>
@@ -1574,23 +1584,27 @@ function MonthlyExpenseSheet() {
                               {expense.expense.type}
                             </span>
                           </td>
-                          <td className="border border-gray-200 px-4 py-2 text-center space-x-2">
-                            <button
-                              onClick={() => handleCellDelete(expense)}
-                              className="p-1 text-red-600 hover:bg-red-100 rounded"
-                              title="Delete"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </td>
-                          <td className="border border-gray-200 px-4 py-2 text-center">
-                            <input
-                              type="checkbox"
-                              checked={expense.isVerified}
-                              onChange={() => handleVerifyExpense(expense)}
-                              className="rounded"
-                            />
-                          </td>
+                          {isAdmin && (
+                            <>
+                              <td className="border border-gray-200 px-4 py-2 text-center space-x-2">
+                                <button
+                                  onClick={() => handleCellDelete(expense)}
+                                  className="p-1 text-red-600 hover:bg-red-100 rounded"
+                                  title="Delete"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </td>
+                              <td className="border border-gray-200 px-4 py-2 text-center">
+                                <input
+                                  type="checkbox"
+                                  checked={expense.isVerified}
+                                  onChange={() => handleVerifyExpense(expense)}
+                                  className="rounded"
+                                />
+                              </td>
+                            </>
+                          )}
                         </tr>
                       ))}
                       <tr className="bg-blue-50">
@@ -2008,12 +2022,16 @@ function MonthlyExpenseSheet() {
                             </div>
                           )}
                         </td>
-                        <td className="border border-gray-200 px-4 py-2 text-sm">
-                          -
-                        </td>
-                        <td className="border border-gray-200 px-4 py-2 text-sm">
-                          -
-                        </td>
+                        {isAdmin && (
+                          <>
+                            <td className="border border-gray-200 px-4 py-2 text-sm">
+                              -
+                            </td>
+                            <td className="border border-gray-200 px-4 py-2 text-sm">
+                              -
+                            </td>
+                          </>
+                        )}
                       </tr>
                       {/* Total Row */}
                       <tr className="bg-gray-100 font-semibold">
@@ -2041,12 +2059,16 @@ function MonthlyExpenseSheet() {
                         <td className="border border-gray-200 px-4 py-2 text-sm text-blue-600">
                           {total.toLocaleString()}
                         </td>
-                        <td className="border border-gray-200 px-4 py-2 text-sm">
-                          -
-                        </td>
-                        <td className="border border-gray-200 px-4 py-2 text-sm">
-                          -
-                        </td>
+                        {isAdmin && (
+                          <>
+                            <td className="border border-gray-200 px-4 py-2 text-sm">
+                              -
+                            </td>
+                            <td className="border border-gray-200 px-4 py-2 text-sm">
+                              -
+                            </td>
+                          </>
+                        )}
                       </tr>
                       {/* Cash Difference Row */}
                       <tr className="bg-gray-100 font-semibold">
@@ -2073,12 +2095,16 @@ function MonthlyExpenseSheet() {
                         <td className="border border-gray-200 px-4 py-2 text-sm">
                           -
                         </td>
-                        <td className="border border-gray-200 px-4 py-2 text-sm">
-                          -
-                        </td>
-                        <td className="border border-gray-200 px-4 py-2 text-sm">
-                          -
-                        </td>
+                        {isAdmin && (
+                          <>
+                            <td className="border border-gray-200 px-4 py-2 text-sm">
+                              -
+                            </td>
+                            <td className="border border-gray-200 px-4 py-2 text-sm">
+                              -
+                            </td>
+                          </>
+                        )}
                       </tr>
                     </tbody>
                   </table>

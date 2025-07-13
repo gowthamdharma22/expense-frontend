@@ -4,7 +4,6 @@ import { loginUser, registerUser } from "../../api/api";
 import { useNavigate } from "react-router-dom";
 // Main container component
 export default function AuthContainer() {
-
   const [activeTab, setActiveTab] = useState("login");
 
   return (
@@ -71,9 +70,10 @@ function LoginComponent() {
       console.log("Login response:", response.data);
       if (response.code == 200) {
         localStorage.setItem("access_token", response.data.token);
-        localStorage.setItem("role",response.data.user.role)
+        localStorage.setItem("role", response.data.user.role);
+        localStorage.setItem("name", response.data.user.name);
         console.log("Login successful:", response);
-        nav("/")
+        nav("/");
       }
     } catch (error) {
       console.error("Login failed:", error);

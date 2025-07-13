@@ -17,6 +17,7 @@ import { getAllShop } from "../../api/api";
 const ModernNavbar = ({ monthlyExpense }) => {
   const nav = useNavigate();
   const location = useLocation();
+  const userName = localStorage.getItem("name");
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -163,7 +164,7 @@ const ModernNavbar = ({ monthlyExpense }) => {
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2 text-white">
               <User className="w-4 h-4" />
-              <span className="font-medium text-sm">John Doe</span>
+              <span className="font-medium text-sm">{userName}</span>
             </div>
 
             {/* Dropdown */}

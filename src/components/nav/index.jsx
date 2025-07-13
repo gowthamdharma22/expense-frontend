@@ -18,12 +18,12 @@ const ModernNavbar = ({ monthlyExpense }) => {
   const nav = useNavigate();
   const location = useLocation();
   const userName = localStorage.getItem("name");
+  const userRole = localStorage.getItem("role");
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedShop, setSelectedShop] = useState(null);
   const [activeRoute, setActiveRoute] = useState("expense");
-
   const [shops, setShops] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -34,12 +34,9 @@ const ModernNavbar = ({ monthlyExpense }) => {
       const shopList = data.data || [];
       setShops(shopList);
 
-      // Set selected shop from URL
       const shopIdFromUrl = searchParams.get("shopId");
-      console.log(shopIdFromUrl, shopList, "op");
       if (shopIdFromUrl) {
         const matchedShop = shopList.find((s) => s.id == shopIdFromUrl);
-        console.log(matchedShop, "op");
         if (matchedShop) {
           setSelectedShop(matchedShop);
         }
@@ -62,7 +59,7 @@ const ModernNavbar = ({ monthlyExpense }) => {
   const handleShopSelect = (shop) => {
     setIsDropdownOpen(false);
     const newParams = new URLSearchParams(searchParams);
-    newParams.set("shopId", shop.id); // or shop._id if that's what you're using
+    newParams.set("shopId", shop.id);
     window.location.href = `${location.pathname}?${newParams.toString()}`;
   };
 
@@ -86,6 +83,30 @@ const ModernNavbar = ({ monthlyExpense }) => {
     0
   );
 
+  const navItems = [
+    {
+      label: "Expense",
+      icon: TrendingUp,
+      route: "/expense",
+      key: "expense",
+      roles: ["admin", "employee"],
+    },
+    {
+      label: "Summary",
+      icon: BarChart3,
+      route: "/summary",
+      key: "summary",
+      roles: ["admin", "employee"],
+    },
+    {
+      label: "Data",
+      icon: Database,
+      route: "/data",
+      key: "data",
+      roles: ["admin"],
+    },
+  ];
+
   return (
     <nav className="bg-gradient-to-r from-blue-600 to-blue-700 shadow-lg fixed top-0 left-0 right-0 z-50">
       <div className="max-w-7xl mx-auto px-6">
@@ -93,36 +114,24 @@ const ModernNavbar = ({ monthlyExpense }) => {
           {/* Left Section */}
           <div className="flex items-center space-x-6">
             <div className="flex items-center space-x-4">
-              {[
-                {
-                  label: "Expense",
-                  icon: TrendingUp,
-                  route: "/expense",
-                  key: "expense",
-                },
-                {
-                  label: "Summary",
-                  icon: BarChart3,
-                  route: "/summary",
-                  key: "summary",
-                },
-                { label: "Data", icon: Database, route: "/data", key: "data" },
-              ].map(({ label, icon: Icon, route, key }) => (
-                <div
-                  key={key}
-                  onClick={() =>
-                    nav(`${route}?shopId=${selectedShop?.id || ""}`)
-                  }
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 font-medium text-sm cursor-pointer ${
-                    activeRoute === key
-                      ? "bg-white text-blue-600 shadow-md"
-                      : "text-blue-100 hover:text-white hover:bg-blue-500"
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{label}</span>
-                </div>
-              ))}
+              {navItems
+                .filter((item) => item.roles.includes(userRole))
+                .map(({ label, icon: Icon, route, key }) => (
+                  <div
+                    key={key}
+                    onClick={() =>
+                      nav(`${route}?shopId=${selectedShop?.id || ""}`)
+                    }
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 font-medium text-sm cursor-pointer ${
+                      activeRoute === key
+                        ? "bg-white text-blue-600 shadow-md"
+                        : "text-blue-100 hover:text-white hover:bg-blue-500"
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{label}</span>
+                  </div>
+                ))}
             </div>
           </div>
 
@@ -147,8 +156,6 @@ const ModernNavbar = ({ monthlyExpense }) => {
                 <>
                   <div className="h-4 w-px bg-white bg-opacity-30" />
                   <div className="flex items-center space-x-2">
-                    {/* <DollarSign className="w-4 h-4 text-white" /> */}
-
                     <span className="text-sm font-semibold text-white">
                       {formatCurrency(
                         selectedShop?.monthlyExpense || monthlyExpense
@@ -242,7 +249,13 @@ const ModernNavbar = ({ monthlyExpense }) => {
                       </div>
                     )}
 
-                    <button className="w-full text-left px-5 py-3 text-red-600 hover:bg-red-50 transition-colors duration-150 flex items-center space-x-2 border-t border-gray-200 text-sm">
+                    <button
+                      onClick={() => {
+                        localStorage.clear();
+                        nav("/auth");
+                      }}
+                      className="w-full text-left px-5 py-3 text-red-600 hover:bg-red-50 transition-colors duration-150 flex items-center space-x-2 border-t border-gray-200 text-sm"
+                    >
                       <LogOut className="w-4 h-4" />
                       <span className="font-medium">Logout</span>
                     </button>

@@ -1470,7 +1470,7 @@ function MonthlyExpenseSheet() {
                                 <option value="">Select user</option>
                                 {notesUser.map((user) => (
                                   <option key={user.id} value={user.id}>
-                                    {user.name}k
+                                    {user.name}
                                   </option>
                                 ))}
                               </select>
@@ -1798,7 +1798,7 @@ function MonthlyExpenseSheet() {
                               <option value="">Select User</option>
                               {notesUser.map((user) => (
                                 <option key={user.id} value={user.id}>
-                                  {user.name}k
+                                  {user.name}
                                 </option>
                               ))}
                             </select>

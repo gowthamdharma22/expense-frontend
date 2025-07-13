@@ -9,7 +9,6 @@ import ProtectedRoute from "./components/protectedRoute/index.jsx";
 import Shop from "./pages/shop/index.jsx";
 import DayExpense from "./pages/dayExpense/index.jsx";
 import ShopList from "./pages/shopList/index.jsx";
-import DayCalender from "./pages/dayCalender/index.jsx";
 import ExpenseNote from "./pages/note/index.jsx";
 import Summary from "./pages/summary/index.jsx";
 
@@ -35,7 +34,7 @@ function AppRoutes() {
           }
         />
         <Route
-          path="/shop"
+          path="/data"
           element={
             <ProtectedRoute>
               <Shop />
@@ -43,18 +42,10 @@ function AppRoutes() {
           }
         />
         <Route
-          path="/dayExpense"
+          path="/expense"
           element={
             <ProtectedRoute>
               <DayExpense />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/dayCalender/:shopId"
-          element={
-            <ProtectedRoute>
-              <DayCalender />
             </ProtectedRoute>
           }
         />

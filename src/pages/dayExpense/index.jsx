@@ -26,6 +26,7 @@ import {
   getActiveMonths,
 } from "../../api/api";
 import { useState, useRef, useEffect } from "react";
+import ModernNavbar from "../../components/nav";
 
 function MonthlyExpenseSheet() {
   const [searchParams, setSearchParams] = useState(
@@ -65,7 +66,7 @@ function MonthlyExpenseSheet() {
     userId: "",
   });
 
-  const shopId = searchParams.get("shopId");
+  const shopId = searchParams.get("shopId") || 1;
 
   const getAllCreditDebitUsers = async () => {
     try {
@@ -143,11 +144,171 @@ function MonthlyExpenseSheet() {
       console.error("Error fetching default expenses:", error);
     }
   };
+
   const findNextEditableCell = (
     currentExpenseId,
     currentField,
     direction = "next"
   ) => {
+    console.log("klkl", currentExpenseId, currentField, direction);
+    // Handle new expense navigation
+    if (currentExpenseId && currentExpenseId.toString().startsWith("new-")) {
+      const dayId = currentExpenseId.replace("new-", "");
+
+      switch (direction) {
+        case "next":
+        case "right":
+          if (currentField === "expenseId") {
+            return {
+              expenseId: currentExpenseId,
+              field: "description",
+              dayId: dayId,
+              isNewExpense: true,
+            };
+          }
+          if (currentField === "description") {
+            if (newExpense.expenseId === "custom") {
+              return {
+                expenseId: currentExpenseId,
+                field: "userId",
+                dayId: dayId,
+                isNewExpense: true,
+              };
+            } else {
+              return {
+                expenseId: currentExpenseId,
+                field: "amount",
+                dayId: dayId,
+                isNewExpense: true,
+              };
+            }
+          }
+          if (currentField === "type") {
+            return {
+              expenseId: currentExpenseId,
+              field: "userId",
+              dayId: dayId,
+              isNewExpense: true,
+            };
+          }
+
+          if (currentField === "userId") {
+            console.log("newExpense", currentField);
+            return {
+              expenseId: currentExpenseId,
+              field: "amount",
+              dayId: dayId,
+              isNewExpense: true,
+            };
+          }
+          if (currentField === "amount" && newExpense.expenseId === "custom") {
+            return {
+              expenseId: currentExpenseId,
+              field: "type",
+              dayId: dayId,
+              isNewExpense: true,
+            };
+          }
+
+          break;
+
+        case "left":
+          if (currentField === "amount") {
+            if (newExpense.expenseId === "custom") {
+              return {
+                expenseId: currentExpenseId,
+                field: "userId",
+                dayId: dayId,
+                isNewExpense: true,
+              };
+            } else {
+              return {
+                expenseId: currentExpenseId,
+                field: "description",
+                dayId: dayId,
+                isNewExpense: true,
+              };
+            }
+          }
+          if (currentField === "userId") {
+            return {
+              expenseId: currentExpenseId,
+              field: "description",
+              dayId: dayId,
+              isNewExpense: true,
+            };
+          }
+          if (currentField === "type") {
+            return {
+              expenseId: currentExpenseId,
+              field: "amount",
+              dayId: dayId,
+              isNewExpense: true,
+            };
+          }
+          if (currentField === "description") {
+            return {
+              expenseId: currentExpenseId,
+              field: "expenseId",
+              dayId: dayId,
+              isNewExpense: true,
+            };
+          }
+          break;
+
+        case "down":
+          // Find next day's new expense row
+          const currentDayIndex = monthlyData.findIndex(
+            (day) => day.day.id === dayId
+          );
+          for (
+            let dayIndex = currentDayIndex + 1;
+            dayIndex < monthlyData.length;
+            dayIndex++
+          ) {
+            const nextDay = monthlyData[dayIndex];
+            return {
+              expenseId: `new-${nextDay.day.id}`,
+              field: currentField,
+              dayId: nextDay.day.id,
+              isNewExpense: true,
+            };
+          }
+          break;
+
+        case "up":
+          // First try to go to last expense of current day
+          const currentDayData = monthlyData.find(
+            (day) => day.day.id === dayId
+          );
+          if (currentDayData && currentDayData.expenses.length > 0) {
+            const lastExpense =
+              currentDayData.expenses[currentDayData.expenses.length - 1];
+            return {
+              expenseId: lastExpense.id,
+              field: currentField === "expenseId" ? "amount" : currentField,
+              dayId: lastExpense.dayId,
+            };
+          }
+          // Then try previous day's new expense row
+          const currentDayIdx = monthlyData.findIndex(
+            (day) => day.day.id === dayId
+          );
+          for (let dayIndex = currentDayIdx - 1; dayIndex >= 0; dayIndex--) {
+            const prevDay = monthlyData[dayIndex];
+            return {
+              expenseId: `new-${prevDay.day.id}`,
+              field: currentField,
+              dayId: prevDay.day.id,
+              isNewExpense: true,
+            };
+          }
+          break;
+      }
+
+      return null;
+    }
+
     let currentDayIndex = -1;
     let currentExpenseIndex = -1;
 
@@ -476,6 +637,7 @@ function MonthlyExpenseSheet() {
     setEditValue("");
 
     if (fromKeyPress) {
+      console.log("jk23", expense.id, field, direction);
       const nextCell = findNextEditableCell(expense.id, field, direction);
 
       if (nextCell) {
@@ -519,6 +681,7 @@ function MonthlyExpenseSheet() {
   };
 
   const handleKeyPress = (e, expense, field) => {
+    console.log("key1", e);
     let direction = null;
 
     switch (e.key) {
@@ -875,6 +1038,8 @@ function MonthlyExpenseSheet() {
 
   const monthlyTotals = calculateMonthlyTotals();
 
+  console.log(monthlyTotals,"hu")
+
   const getSelectedExpenseType = (expenseId, dayId) => {
     if (!expenseId || expenseId === "custom") return null;
     const selectedExpense = defaultExpenses.find((exp) => exp.id == expenseId);
@@ -942,35 +1107,46 @@ function MonthlyExpenseSheet() {
     }
   };
 
+  const handleNewExpenseNavigation = (dayId, field, direction) => {
+    console.log("newExpense88", dayId, field, direction);
+    const nextCell = findNextEditableCell(`new-${dayId}`, field, direction);
+
+    if (nextCell) {
+      setTimeout(() => {
+        if (nextCell.isNewExpense) {
+          const inputRef =
+            inputRefs.current[`${nextCell.dayId}-${nextCell.field}`];
+          if (inputRef) {
+            inputRef.focus();
+          }
+        } else {
+          // Moving to existing expense
+          const nextExpense = monthlyData
+            .flatMap((day) => day.expenses)
+            .find((exp) => exp.id === nextCell.expenseId);
+
+          if (nextExpense) {
+            const nextCellValue =
+              nextCell.field === "amount"
+                ? nextExpense.amount
+                : nextCell.field === "name"
+                ? nextExpense?.expense?.user?.id || nextExpense?.userId || ""
+                : nextExpense.description ||
+                  nextExpense.expense.description ||
+                  "";
+
+            handleCellClick(nextCell.expenseId, nextCell.field, nextCellValue);
+          }
+        }
+      }, 100);
+    }
+  };
   return (
     <div className="min-h-screen bg-gray-100 p-6 font-sans">
-      <div className="max-w-7xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
-        <div className="bg-gradient-to-r from-blue-500 to-blue-700 p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <FileText className="w-8 h-8" />
-              <div>
-                <h1 className="text-xl font-semibold">Monthly Expense Sheet</h1>
-                <p className="text-sm opacity-90">
-                  {monthlyData.length > 0
-                    ? formatMonthYear(monthlyData[0].day.date)
-                    : selectedMonth}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm font-medium">
-                Shop ID: <span className="font-bold">{shopId}</span>
-              </span>
-              <div className="bg-white/10 px-4 py-2 rounded-lg">
-                <span className="text-sm font-medium">Monthly Total: </span>
-                <span className="text-lg font-bold">
-                  ₹{monthlyTotals.netAmount.toLocaleString()}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
+      <ModernNavbar
+        monthlyExpense={monthlyTotals.netAmount || 0}
+      />
+      <div className="max-w-7xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden mt-20">
         <div className="fixed bottom-0 left-0 w-full z-[9999] bg-gradient-to-t from-white via-white to-white/95 backdrop-blur-sm border-t border-slate-200/80 shadow-lg">
           <div className="pl-5 pr-4 py-2">
             <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-9 gap-2">
@@ -1266,22 +1442,25 @@ function MonthlyExpenseSheet() {
                           <td className="border border-gray-200 px-4 py-2 text-sm text-center">
                             {editingCell === `${expense.id}-name` ? (
                               <select
-                                value={editValue}
-                                onChange={(e) => setEditValue(e.target.value)}
-                                onBlur={() => handleCellSave(expense, "name")}
-                                onKeyDown={(e) =>
-                                  handleKeyPress(e, expense, "name")
+                                value={newExpense.userId}
+                                onChange={(e) =>
+                                  setNewExpense({
+                                    ...newExpense,
+                                    dayId: dayData.day.id,
+                                    userId: e.target.value,
+                                  })
                                 }
-                                className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                className="w-full h-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 text-sm bg-white"
                                 ref={(el) =>
-                                  (inputRefs.current[`${expense.id}-name`] = el)
+                                  (inputRefs.current[
+                                    `${dayData.day.id}-userId`
+                                  ] = el)
                                 }
-                                autoFocus
                               >
                                 <option value="">Select user</option>
                                 {notesUser.map((user) => (
                                   <option key={user.id} value={user.id}>
-                                    {user.name}
+                                    {user.name}k
                                   </option>
                                 ))}
                               </select>
@@ -1293,7 +1472,7 @@ function MonthlyExpenseSheet() {
                                     "name",
                                     expense.expense?.user?.id ||
                                       expense.userId ||
-                                      "" // Fixed: Use user ID instead of name
+                                      ""
                                   )
                                 }
                                 className="cursor-pointer min-h-[32px] flex items-center justify-center"
@@ -1447,10 +1626,32 @@ function MonthlyExpenseSheet() {
                               ] = el)
                             }
                             onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                inputRefs.current[
-                                  `${dayData.day.id}-description`
-                                ]?.focus();
+                              switch (e.key) {
+                                case "Enter":
+                                case "ArrowRight":
+                                  e.preventDefault();
+                                  handleNewExpenseNavigation(
+                                    dayData.day.id,
+                                    "expenseId",
+                                    "next"
+                                  );
+                                  break;
+                                case "ArrowDown":
+                                  e.preventDefault();
+                                  handleNewExpenseNavigation(
+                                    dayData.day.id,
+                                    "expenseId",
+                                    "down"
+                                  );
+                                  break;
+                                case "ArrowUp":
+                                  e.preventDefault();
+                                  handleNewExpenseNavigation(
+                                    dayData.day.id,
+                                    "expenseId",
+                                    "up"
+                                  );
+                                  break;
                               }
                             }}
                           >
@@ -1486,10 +1687,40 @@ function MonthlyExpenseSheet() {
                               ] = el)
                             }
                             onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                inputRefs.current[
-                                  `${dayData.day.id}-type`
-                                ]?.focus();
+                              switch (e.key) {
+                                case "Enter":
+                                case "ArrowRight":
+                                  e.preventDefault();
+                                  handleNewExpenseNavigation(
+                                    dayData.day.id,
+                                    "description",
+                                    "next"
+                                  );
+                                  break;
+                                case "ArrowLeft":
+                                  e.preventDefault();
+                                  handleNewExpenseNavigation(
+                                    dayData.day.id,
+                                    "description",
+                                    "left"
+                                  );
+                                  break;
+                                case "ArrowDown":
+                                  e.preventDefault();
+                                  handleNewExpenseNavigation(
+                                    dayData.day.id,
+                                    "description",
+                                    "down"
+                                  );
+                                  break;
+                                case "ArrowUp":
+                                  e.preventDefault();
+                                  handleNewExpenseNavigation(
+                                    dayData.day.id,
+                                    "description",
+                                    "up"
+                                  );
+                                  break;
                               }
                             }}
                           />
@@ -1512,22 +1743,55 @@ function MonthlyExpenseSheet() {
                                   el)
                               }
                               onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  handleAddExpense(dayData); // Changed from handleAddAdjust
+                                switch (e.key) {
+                                  case "Enter":
+                                  case "ArrowRight":
+                                    e.preventDefault();
+                                    handleAddExpense(dayData);
+                                    handleNewExpenseNavigation(
+                                      dayData.day.id,
+                                      "userId",
+                                      "next"
+                                    );
+                                    break;
+                                  case "ArrowLeft":
+                                    e.preventDefault();
+                                    handleNewExpenseNavigation(
+                                      dayData.day.id,
+                                      "userId",
+                                      "left"
+                                    );
+                                    break;
+                                  case "ArrowDown":
+                                    e.preventDefault();
+                                    handleNewExpenseNavigation(
+                                      dayData.day.id,
+                                      "userId",
+                                      "down"
+                                    );
+                                    break;
+                                  case "ArrowUp":
+                                    e.preventDefault();
+                                    handleNewExpenseNavigation(
+                                      dayData.day.id,
+                                      "userId",
+                                      "up"
+                                    );
+                                    break;
                                 }
                               }}
                             >
                               <option value="">Select User</option>
                               {notesUser.map((user) => (
                                 <option key={user.id} value={user.id}>
-                                  {user.name}
+                                  {user.name}k
                                 </option>
                               ))}
                             </select>
                           ) : (
-                            <div className="border-gray-200 px-4 py-2 text-sm">
+                            <td className="border-gray-200 px-4 py-2 text-sm">
                               -
-                            </div>
+                            </td>
                           )}
                         </td>
                         <td className="border border-gray-200 px-0 py-0">
@@ -1547,15 +1811,48 @@ function MonthlyExpenseSheet() {
                                   amount: e.target.value,
                                 })
                               }
-                              className="w-full h-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 text-sm text-green-600 font-medium"
-                              placeholder="Credit amount"
+                              className="w-full h-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 text-sm text-red-600 font-medium"
+                              placeholder="Amount"
                               ref={(el) =>
                                 (inputRefs.current[`${dayData.day.id}-amount`] =
                                   el)
                               }
                               onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  handleAddExpense(dayData);
+                                switch (e.key) {
+                                  case "Enter":
+                                  case "ArrowRight":
+                                    e.preventDefault();
+                                    handleAddExpense(dayData);
+                                    handleNewExpenseNavigation(
+                                      dayData.day.id,
+                                      "amount",
+                                      "next"
+                                    );
+                                    break;
+                                  case "ArrowLeft":
+                                    e.preventDefault();
+                                    handleNewExpenseNavigation(
+                                      dayData.day.id,
+                                      "amount",
+                                      "left"
+                                    );
+                                    break;
+                                  case "ArrowDown":
+                                    e.preventDefault();
+                                    handleNewExpenseNavigation(
+                                      dayData.day.id,
+                                      "amount",
+                                      "down"
+                                    );
+                                    break;
+                                  case "ArrowUp":
+                                    e.preventDefault();
+                                    handleNewExpenseNavigation(
+                                      dayData.day.id,
+                                      "amount",
+                                      "up"
+                                    );
+                                    break;
                                 }
                               }}
                             />
@@ -1583,14 +1880,47 @@ function MonthlyExpenseSheet() {
                                 })
                               }
                               className="w-full h-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 text-sm text-red-600 font-medium"
-                              placeholder="Debit amount"
+                              placeholder="Amount"
                               ref={(el) =>
                                 (inputRefs.current[`${dayData.day.id}-amount`] =
                                   el)
                               }
                               onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  handleAddExpense(dayData); // Changed from conditional
+                                switch (e.key) {
+                                  case "Enter":
+                                  case "ArrowRight":
+                                    e.preventDefault();
+                                    handleAddExpense(dayData);
+                                    handleNewExpenseNavigation(
+                                      dayData.day.id,
+                                      "amount",
+                                      "next"
+                                    );
+                                    break;
+                                  case "ArrowLeft":
+                                    e.preventDefault();
+                                    handleNewExpenseNavigation(
+                                      dayData.day.id,
+                                      "amount",
+                                      "left"
+                                    );
+                                    break;
+                                  case "ArrowDown":
+                                    e.preventDefault();
+                                    handleNewExpenseNavigation(
+                                      dayData.day.id,
+                                      "amount",
+                                      "down"
+                                    );
+                                    break;
+                                  case "ArrowUp":
+                                    e.preventDefault();
+                                    handleNewExpenseNavigation(
+                                      dayData.day.id,
+                                      "amount",
+                                      "up"
+                                    );
+                                    break;
                                 }
                               }}
                             />
@@ -1618,10 +1948,35 @@ function MonthlyExpenseSheet() {
                                   el)
                               }
                               onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  inputRefs.current[
-                                    `${dayData.day.id}-userId` // Focus on user dropdown after type selection
-                                  ]?.focus();
+                                switch (e.key) {
+                                  case "Enter":
+                                  case "ArrowRight":
+                                    e.preventDefault();
+                                    break;
+                                  case "ArrowLeft":
+                                    e.preventDefault();
+                                    handleNewExpenseNavigation(
+                                      dayData.day.id,
+                                      "type",
+                                      "left"
+                                    );
+                                    break;
+                                  case "ArrowDown":
+                                    e.preventDefault();
+                                    handleNewExpenseNavigation(
+                                      dayData.day.id,
+                                      "type",
+                                      "down"
+                                    );
+                                    break;
+                                  case "ArrowUp":
+                                    e.preventDefault();
+                                    handleNewExpenseNavigation(
+                                      dayData.day.id,
+                                      "type",
+                                      "up"
+                                    );
+                                    break;
                                 }
                               }}
                             >

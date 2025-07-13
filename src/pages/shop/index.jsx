@@ -1086,7 +1086,7 @@ const ExpenseManagement = () => {
   return (
     <>
       <Navbar />
-      <div className="px-4 py-6 max-w-6xl mx-auto">
+      <div className="px-4 py-6 max-w-6xl mx-auto mt-20">
         <div className="flex border-b mb-6">
           <button
             onClick={() => {

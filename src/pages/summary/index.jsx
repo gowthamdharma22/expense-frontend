@@ -20,6 +20,7 @@ import {
   getExpenseSummary,
   getExpenseSummaryDetails,
 } from "../../api/api";
+import ModernNavbar from "../../components/nav";
 
 // Credit/Debit Notes Component
 const CreditDebitNotes = ({ selectedMonth, shopId }) => {
@@ -370,19 +371,20 @@ const ExpenseSummary = ({ selectedMonth, shopId }) => {
     );
   }
 
-  const credits =
-    expenseSummary?.summary.filter(
-      (e) => e.type === "credit" && e.expenseId !== 1 && e.expenseId !== 2
-    ) || [];
-  const debits =
-    expenseSummary?.summary.filter(
-      (e) => e.type === "debit" && e.expenseId !== 1 && e.expenseId !== 2
-    ) || [];
+  const isValidSummary = Array.isArray(expenseSummary?.summary) && expenseSummary.summary.length > 0;
 
-  const creditDebitNotes =
-    expenseSummary?.summary.filter(
-      (e) => e.expenseId === 1 || e.expenseId === 2
-    ) || [];
+  const credits = isValidSummary
+    ? expenseSummary.summary.filter((e) => e.type === "credit" && e.expenseId !== 1 && e.expenseId !== 2)
+    : [];
+  
+  const debits = isValidSummary
+    ? expenseSummary.summary.filter((e) => e.type === "debit" && e.expenseId !== 1 && e.expenseId !== 2)
+    : [];
+  
+  const creditDebitNotes = isValidSummary
+    ? expenseSummary.summary.filter((e) => e.expenseId === 1 || e.expenseId === 2)
+    : [];
+  
 
   const ExpenseSection = ({
     title,
@@ -993,121 +995,124 @@ const ExpensesDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Fixed Navbar at the top */}
-      <div className="fixed top-0 left-0 right-0 z-10 bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-4">
-          {/* Navigation Tabs */}
-          <div className="border-b border-gray-100">
-            <div className="flex">
-              <button
-                className={`flex-1 px-6 py-4 text-sm font-semibold border-b-2 transition-all duration-300 ${
-                  activeTab === "expenses"
-                    ? "border-blue-500 text-blue-600 bg-blue-50"
-                    : "border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                }`}
-                onClick={() => handleTabChange("expenses")}
-              >
-                <div className="flex items-center justify-center space-x-2">
-                  <Receipt className="w-4 h-4" />
-                  <span>Expenses Overview</span>
-                </div>
-              </button>
-              <button
-                className={`flex-1 px-6 py-4 text-sm font-semibold border-b-2 transition-all duration-300 ${
-                  activeTab === "notes"
-                    ? "border-blue-500 text-blue-600 bg-blue-50"
-                    : "border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                }`}
-                onClick={() => handleTabChange("notes")}
-              >
-                <div className="flex items-center justify-center space-x-2">
-                  <Users className="w-4 h-4" />
-                  <span>Customer Accounts</span>
-                </div>
-              </button>
-              <button
-                className={`flex-1 px-6 py-4 text-sm font-semibold border-b-2 transition-all duration-300 ${
-                  activeTab === "activity"
-                    ? "border-blue-500 text-blue-600 bg-blue-50"
-                    : "border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                }`}
-                onClick={() => handleTabChange("activity")}
-              >
-                <div className="flex items-center justify-center space-x-2">
-                  <Activity className="w-4 h-4" />
-                  <span>Activity Logs</span>
-                </div>
-              </button>
+    <>
+      <ModernNavbar />
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        {/* Fixed Navbar at the top */}
+        <div className="fixed top-16 left-0 right-0 z-10 bg-white shadow-sm border-b border-gray-200">
+          <div className="max-w-6xl mx-auto px-4">
+            {/* Navigation Tabs */}
+            <div className="border-b border-gray-100">
+              <div className="flex">
+                <button
+                  className={`flex-1 px-6 py-4 text-sm font-semibold border-b-2 transition-all duration-300 ${
+                    activeTab === "expenses"
+                      ? "border-blue-500 text-blue-600 bg-blue-50"
+                      : "border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  }`}
+                  onClick={() => handleTabChange("expenses")}
+                >
+                  <div className="flex items-center justify-center space-x-2">
+                    <Receipt className="w-4 h-4" />
+                    <span>Expenses Overview</span>
+                  </div>
+                </button>
+                <button
+                  className={`flex-1 px-6 py-4 text-sm font-semibold border-b-2 transition-all duration-300 ${
+                    activeTab === "notes"
+                      ? "border-blue-500 text-blue-600 bg-blue-50"
+                      : "border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  }`}
+                  onClick={() => handleTabChange("notes")}
+                >
+                  <div className="flex items-center justify-center space-x-2">
+                    <Users className="w-4 h-4" />
+                    <span>Customer Accounts</span>
+                  </div>
+                </button>
+                <button
+                  className={`flex-1 px-6 py-4 text-sm font-semibold border-b-2 transition-all duration-300 ${
+                    activeTab === "activity"
+                      ? "border-blue-500 text-blue-600 bg-blue-50"
+                      : "border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  }`}
+                  onClick={() => handleTabChange("activity")}
+                >
+                  <div className="flex items-center justify-center space-x-2">
+                    <Activity className="w-4 h-4" />
+                    <span>Activity Logs</span>
+                  </div>
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Content container with padding to account for fixed navbar height */}
-      <div className="pt-24 pb-6 max-w-6xl mx-auto px-4">
-        {/* Month Selection */}
-        {activeTab != "activity" && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 mb-6 overflow-hidden p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Calendar className="w-4 h-4 text-blue-600" />
+        {/* Content container with padding to account for fixed navbar height */}
+        <div className="pt-24 pb-6 max-w-6xl mx-auto px-4">
+          {/* Month Selection */}
+          {activeTab != "activity" && (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 mb-6 overflow-hidden p-6 mt-8">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <Calendar className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-semibold text-gray-900">
+                      Select Month
+                    </h2>
+                    <p className="text-gray-600 text-xs">
+                      Choose a month to view data
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-sm font-semibold text-gray-900">
-                    Select Month
-                  </h2>
-                  <p className="text-gray-600 text-xs">
-                    Choose a month to view data
+                <div className="text-right">
+                  <p className="text-xs text-gray-500">Currently viewing</p>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {formatMonth(selectedMonth)}
                   </p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-xs text-gray-500">Currently viewing</p>
-                <p className="text-sm font-semibold text-gray-900">
-                  {formatMonth(selectedMonth)}
-                </p>
+
+              <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                {activeMonths.map(({ month }) => {
+                  const [mon, yr] = formatMonth(month).split(" ");
+                  const isActive = selectedMonth === month;
+
+                  return (
+                    <button
+                      key={month}
+                      onClick={() => handleMonthChange(month)}
+                      className={`p-2 rounded text-xs font-medium text-center transition ${
+                        isActive
+                          ? "bg-blue-600 text-white shadow scale-105"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                    >
+                      <div className="opacity-70">{mon}</div>
+                      <div className="text-sm font-bold">{yr}</div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
-
-            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-              {activeMonths.map(({ month }) => {
-                const [mon, yr] = formatMonth(month).split(" ");
-                const isActive = selectedMonth === month;
-
-                return (
-                  <button
-                    key={month}
-                    onClick={() => handleMonthChange(month)}
-                    className={`p-2 rounded text-xs font-medium text-center transition ${
-                      isActive
-                        ? "bg-blue-600 text-white shadow scale-105"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
-                  >
-                    <div className="opacity-70">{mon}</div>
-                    <div className="text-sm font-bold">{yr}</div>
-                  </button>
-                );
-              })}
-            </div>
+          )}
+          {/* Tab Content */}
+          <div className="transition-all duration-300">
+            {activeTab === "expenses" && (
+              <ExpenseSummary selectedMonth={selectedMonth} shopId={shopId} />
+            )}
+            {activeTab === "notes" && (
+              <CreditDebitNotes selectedMonth={selectedMonth} shopId={shopId} />
+            )}
+            {activeTab === "activity" && (
+              <ActivityLogs selectedMonth={selectedMonth} shopId={shopId} />
+            )}
           </div>
-        )}
-        {/* Tab Content */}
-        <div className="transition-all duration-300">
-          {activeTab === "expenses" && (
-            <ExpenseSummary selectedMonth={selectedMonth} shopId={shopId} />
-          )}
-          {activeTab === "notes" && (
-            <CreditDebitNotes selectedMonth={selectedMonth} shopId={shopId} />
-          )}
-          {activeTab === "activity" && (
-            <ActivityLogs selectedMonth={selectedMonth} shopId={shopId} />
-          )}
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

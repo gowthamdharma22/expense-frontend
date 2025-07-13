@@ -26,7 +26,7 @@ const ShopSelection = () => {
   }, []);
 
   const handleShopClick = (shopId) => {
-    nav(`/dayExpense?shopId=${shopId}`);
+    nav(`/expense?shopId=${shopId}`);
   };
 
   if (loading) {

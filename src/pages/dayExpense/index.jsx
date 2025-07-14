@@ -933,6 +933,13 @@ function MonthlyExpenseSheet() {
   // Replace the handleCellClick function
   const handleCellClick = (rowId, field, currentValue) => {
     // Only allow editing username for credit/debit expenses or if admin
+
+    const expense = monthlyData
+      .flatMap((day) => day.expenses)
+      .find((exp) => exp.id === rowId);
+
+    if (expense?.isVerified && !isAdmin) return;
+
     if (field === "name") {
       const expense = monthlyData
         .flatMap((day) => day.expenses)

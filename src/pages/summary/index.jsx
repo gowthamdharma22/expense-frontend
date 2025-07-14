@@ -12,22 +12,40 @@ import {
   EyeOff,
   Phone,
   User,
+  Settings,
+  Check,
+  Clock,
+  DollarSign,
+  Plus,
+  Edit,
+  X,
 } from "lucide-react";
 import {
+  adjustTransaction,
   getActiveMonths,
   getAllActivity,
   getAllNotes,
   getExpenseSummary,
   getExpenseSummaryDetails,
+  verifyAdjustment,
 } from "../../api/api";
 import ModernNavbar from "../../components/nav";
-
+const role = localStorage.getItem("role");
+const isAdmin = role === "admin";
 // Credit/Debit Notes Component
 const CreditDebitNotes = ({ selectedMonth, shopId }) => {
   const [notesData, setNotesData] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
   const [userDetails, setUserDetails] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [activeSubTab, setActiveSubTab] = useState("credit-debit");
+  const [showAddAdjustment, setShowAddAdjustment] = useState(false);
+  const [adjustmentForm, setAdjustmentForm] = useState({
+    amount: "",
+    description: "",
+  });
+  const [submittingAdjustment, setSubmittingAdjustment] = useState(false);
+  const [verifyingAdjustments, setVerifyingAdjustments] = useState({});
 
   useEffect(() => {
     fetchNotesData();
@@ -63,6 +81,43 @@ const CreditDebitNotes = ({ selectedMonth, shopId }) => {
     } else {
       setSelectedUser(userId);
       await fetchUserDetails(userId);
+    }
+  };
+
+  const handleAddAdjustment = async (e) => {
+    e.preventDefault();
+    if (!adjustmentForm.amount || !adjustmentForm.description) return;
+
+    setSubmittingAdjustment(true);
+    try {
+      const payload = {
+        shopId: parseInt(shopId),
+        amount: parseFloat(adjustmentForm.amount),
+        description: adjustmentForm.description,
+      };
+
+      await adjustTransaction(payload);
+
+      // Reset form and refresh data
+      setAdjustmentForm({ amount: "", description: "" });
+      setShowAddAdjustment(false);
+      await fetchNotesData();
+    } catch (err) {
+      console.error("Failed to add adjustment");
+    } finally {
+      setSubmittingAdjustment(false);
+    }
+  };
+
+  const handleVerifyAdjustment = async (adjustId, isVerified) => {
+    setVerifyingAdjustments((prev) => ({ ...prev, [adjustId]: true }));
+    try {
+      await verifyAdjustment(adjustId, isVerified);
+      await fetchNotesData();
+    } catch (err) {
+      console.error("Failed to verify adjustment");
+    } finally {
+      setVerifyingAdjustments((prev) => ({ ...prev, [adjustId]: false }));
     }
   };
 
@@ -127,172 +182,414 @@ const CreditDebitNotes = ({ selectedMonth, shopId }) => {
         </div>
       )}
 
-      {/* Customer List */}
-      {notesData?.summary && notesData.summary.length > 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h3 className="text-base font-semibold text-gray-900 flex items-center">
-              <Users className="w-4 h-4 mr-2 text-blue-600" />
-              Customer Accounts
-            </h3>
-            <p className="text-gray-600 mt-1 text-xs">
-              Click on any customer to view detailed transactions
-            </p>
+      {/* Sub Navigation Tabs */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="border-b border-gray-100">
+          <div className="flex">
+            <button
+              className={`flex-1 px-6 py-4 text-sm font-semibold border-b-2 transition-all duration-300 ${
+                activeSubTab === "credit-debit"
+                  ? "border-blue-500 text-blue-600 bg-blue-50"
+                  : "border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+              }`}
+              onClick={() => setActiveSubTab("credit-debit")}
+            >
+              <div className="flex items-center justify-center space-x-2">
+                <Users className="w-4 h-4" />
+                <span>Credit/Debit</span>
+              </div>
+            </button>
+            <button
+              className={`flex-1 px-6 py-4 text-sm font-semibold border-b-2 transition-all duration-300 ${
+                activeSubTab === "adjustments"
+                  ? "border-blue-500 text-blue-600 bg-blue-50"
+                  : "border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+              }`}
+              onClick={() => setActiveSubTab("adjustments")}
+            >
+              <div className="flex items-center justify-center space-x-2">
+                <DollarSign className="w-4 h-4" />
+                <span>Adjustments</span>
+                {notesData?.adjustments?.length > 0 && (
+                  <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full">
+                    {notesData.adjustments.length}
+                  </span>
+                )}
+              </div>
+            </button>
           </div>
+        </div>
 
-          <div className="divide-y divide-gray-50">
-            {notesData.summary.map((user) => (
-              <div key={user.userId} className="transition-all duration-200">
-                <div
-                  className="px-6 py-4 hover:bg-gray-50 cursor-pointer transition-colors"
-                  onClick={() => handleUserClick(user.userId)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                        <User className="w-4 h-4 text-white" />
+        {/* Credit/Debit Tab Content */}
+        {activeSubTab === "credit-debit" && (
+          <div>
+            {notesData?.summary && notesData.summary.length > 0 ? (
+              <div>
+                <div className="px-6 py-4 border-b border-gray-100">
+                  <h3 className="text-base font-semibold text-gray-900 flex items-center">
+                    <Users className="w-4 h-4 mr-2 text-blue-600" />
+                    Customer Accounts
+                  </h3>
+                  <p className="text-gray-600 mt-1 text-xs">
+                    Click on any customer to view detailed transactions
+                  </p>
+                </div>
+
+                <div className="divide-y divide-gray-50">
+                  {notesData.summary.map((user) => (
+                    <div
+                      key={user.userId}
+                      className="transition-all duration-200"
+                    >
+                      <div
+                        className="px-6 py-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                        onClick={() => handleUserClick(user.userId)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                              <User className="w-4 h-4 text-white" />
+                            </div>
+                            <div>
+                              <h4 className="font-medium text-gray-900 text-sm">
+                                {user.name}
+                              </h4>
+                              {user.phone && (
+                                <div className="flex items-center text-gray-500 mt-0.5">
+                                  <Phone className="w-3 h-3 mr-1" />
+                                  <span className="text-xs">{user.phone}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center space-x-6">
+                            <div className="text-center">
+                              <p className="text-xs text-gray-500 font-medium">
+                                Credit
+                              </p>
+                              <p className="text-sm font-semibold text-green-600">
+                                {formatCurrency(user.totalCredit)}
+                              </p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-xs text-gray-500 font-medium">
+                                Debit
+                              </p>
+                              <p className="text-sm font-semibold text-red-600">
+                                {formatCurrency(user.totalDebit)}
+                              </p>
+                            </div>
+                            <div className="text-center min-w-[100px]">
+                              <p className="text-xs text-gray-500 font-medium">
+                                Balance
+                              </p>
+                              <p
+                                className={`text-sm font-bold ${
+                                  user.balanceAmount >= 0
+                                    ? "text-green-600"
+                                    : "text-red-600"
+                                }`}
+                              >
+                                {formatCurrency(user.balanceAmount)}
+                              </p>
+                            </div>
+                            <div className="flex items-center">
+                              {selectedUser === user.userId ? (
+                                <EyeOff className="w-4 h-4 text-gray-400" />
+                              ) : (
+                                <Eye className="w-4 h-4 text-gray-400" />
+                              )}
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="font-medium text-gray-900 text-sm">
-                          {user.name}
-                        </h4>
-                        {user.phone && (
-                          <div className="flex items-center text-gray-500 mt-0.5">
-                            <Phone className="w-3 h-3 mr-1" />
-                            <span className="text-xs">{user.phone}</span>
+
+                      {/* Transaction Details */}
+                      {selectedUser === user.userId && userDetails && (
+                        <div className="bg-gray-50 border-t border-gray-100">
+                          <div className="px-6 py-4">
+                            <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+                              <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
+                                <h5 className="font-medium text-gray-900 text-sm">
+                                  Transaction History
+                                </h5>
+                              </div>
+                              <div className="divide-y divide-gray-100 max-h-64 overflow-y-auto">
+                                {userDetails.summary.map((transaction, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="px-4 py-3 hover:bg-gray-50 transition-colors"
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center space-x-3">
+                                        <div
+                                          className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                                            transaction.type === "credit"
+                                              ? "bg-green-100 text-green-600"
+                                              : "bg-red-100 text-red-600"
+                                          }`}
+                                        >
+                                          {transaction.type === "credit" ? (
+                                            <TrendingUp className="w-3 h-3" />
+                                          ) : (
+                                            <TrendingDown className="w-3 h-3" />
+                                          )}
+                                        </div>
+                                        <div>
+                                          <p className="font-medium text-gray-900 text-xs">
+                                            {transaction.description ||
+                                              "No description"}
+                                          </p>
+                                          <p className="text-xs text-gray-500">
+                                            {formatDate(transaction.date)}
+                                          </p>
+                                        </div>
+                                      </div>
+                                      <div className="text-right">
+                                        <p
+                                          className={`text-sm font-semibold ${
+                                            transaction.type === "credit"
+                                              ? "text-green-600"
+                                              : "text-red-600"
+                                          }`}
+                                        >
+                                          {formatCurrency(transaction.amount)}
+                                        </p>
+                                        <span
+                                          className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                                            transaction.type === "credit"
+                                              ? "bg-green-100 text-green-700"
+                                              : "bg-red-100 text-red-700"
+                                          }`}
+                                        >
+                                          {transaction.type.toUpperCase()}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <Users className="w-6 h-6 text-gray-400" />
+                </div>
+                <h3 className="text-sm font-medium text-gray-900 mb-1">
+                  No Customer Accounts
+                </h3>
+                <p className="text-gray-500 text-xs">
+                  No credit/debit notes available for the selected month.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Adjustments Tab Content */}
+        {activeSubTab === "adjustments" && (
+          <div>
+            <div className="px-6 py-4 border-b border-gray-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900 flex items-center">
+                    <DollarSign className="w-4 h-4 mr-2 text-blue-600" />
+                    Adjustments
+                  </h3>
+                  <p className="text-gray-600 mt-1 text-xs">
+                    Manage payment adjustments and verifications
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowAddAdjustment(true)}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Adjustment</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Add Adjustment Form */}
+            {showAddAdjustment && (
+              <div className="px-6 py-4 bg-blue-50 border-b border-blue-100">
+                <form onSubmit={handleAddAdjustment} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Amount
+                      </label>
+                      <input
+                        type="number"
+                        value={adjustmentForm.amount}
+                        onChange={(e) =>
+                          setAdjustmentForm({
+                            ...adjustmentForm,
+                            amount: e.target.value,
+                          })
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter amount"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Description
+                      </label>
+                      <input
+                        type="text"
+                        value={adjustmentForm.description}
+                        onChange={(e) =>
+                          setAdjustmentForm({
+                            ...adjustmentForm,
+                            description: e.target.value,
+                          })
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter description"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <button
+                      type="submit"
+                      disabled={submittingAdjustment}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                    >
+                      {submittingAdjustment ? "Adding..." : "Add Adjustment"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAddAdjustment(false);
+                        setAdjustmentForm({ amount: "", description: "" });
+                      }}
+                      className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-300 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* Adjustments List */}
+            {notesData?.adjustments && notesData.adjustments.length > 0 ? (
+              <div className="divide-y divide-gray-50">
+                {notesData.adjustments.map((adjustment) => (
+                  <div
+                    key={adjustment.id}
+                    className="px-6 py-4 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
+                          <Edit className="w-4 h-4 text-white" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900 text-sm">
+                            {adjustment.description}
+                          </h4>
+                          <p className="text-xs text-gray-500">
+                            {formatDate(adjustment.date)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-4">
+                        <div className="text-center">
+                          <p className="text-xs text-gray-500 font-medium">
+                            Amount
+                          </p>
+                          <p className="text-sm font-semibold text-orange-600">
+                            {formatCurrency(adjustment.amount)}
+                          </p>
+                        </div>
+
+                        <div className="text-center">
+                          <p className="text-xs text-gray-500 font-medium">
+                            Status
+                          </p>
+                          <span
+                            className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                              adjustment.isAdjustmentVerified
+                                ? "bg-green-100 text-green-700"
+                                : "bg-yellow-100 text-yellow-700"
+                            }`}
+                          >
+                            {adjustment.isAdjustmentVerified
+                              ? "Verified"
+                              : "Not Verified"}
+                          </span>
+                        </div>
+
+                        {!isAdmin && (
+                          <div className="flex items-center space-x-2">
+                            {!adjustment.isAdjustmentVerified && (
+                              <button
+                                onClick={() =>
+                                  handleVerifyAdjustment(adjustment.id, true)
+                                }
+                                disabled={verifyingAdjustments[adjustment.id]}
+                                className="bg-green-600 text-white p-2 rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+                                title="Verify adjustment"
+                              >
+                                {verifyingAdjustments[adjustment.id] ? (
+                                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                ) : (
+                                  <Check className="w-4 h-4" />
+                                )}
+                              </button>
+                            )}
+                            {adjustment.isAdjustmentVerified && (
+                              <button
+                                onClick={() =>
+                                  handleVerifyAdjustment(adjustment.id, false)
+                                }
+                                disabled={verifyingAdjustments[adjustment.id]}
+                                className="bg-red-600 text-white p-2 rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
+                                title="Unverify adjustment"
+                              >
+                                {verifyingAdjustments[adjustment.id] ? (
+                                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                ) : (
+                                  <X className="w-4 h-4" />
+                                )}
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
                     </div>
-
-                    <div className="flex items-center space-x-6">
-                      <div className="text-center">
-                        <p className="text-xs text-gray-500 font-medium">
-                          Credit
-                        </p>
-                        <p className="text-sm font-semibold text-green-600">
-                          {formatCurrency(user.totalCredit)}
-                        </p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-xs text-gray-500 font-medium">
-                          Debit
-                        </p>
-                        <p className="text-sm font-semibold text-red-600">
-                          {formatCurrency(user.totalDebit)}
-                        </p>
-                      </div>
-                      <div className="text-center min-w-[100px]">
-                        <p className="text-xs text-gray-500 font-medium">
-                          Balance
-                        </p>
-                        <p
-                          className={`text-sm font-bold ${
-                            user.balanceAmount >= 0
-                              ? "text-green-600"
-                              : "text-red-600"
-                          }`}
-                        >
-                          {formatCurrency(user.balanceAmount)}
-                        </p>
-                      </div>
-                      <div className="flex items-center">
-                        {selectedUser === user.userId ? (
-                          <EyeOff className="w-4 h-4 text-gray-400" />
-                        ) : (
-                          <Eye className="w-4 h-4 text-gray-400" />
-                        )}
-                      </div>
-                    </div>
                   </div>
-                </div>
-
-                {/* Transaction Details */}
-                {selectedUser === user.userId && userDetails && (
-                  <div className="bg-gray-50 border-t border-gray-100">
-                    <div className="px-6 py-4">
-                      <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
-                        <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
-                          <h5 className="font-medium text-gray-900 text-sm">
-                            Transaction History
-                          </h5>
-                        </div>
-                        <div className="divide-y divide-gray-100 max-h-64 overflow-y-auto">
-                          {userDetails.summary.map((transaction, idx) => (
-                            <div
-                              key={idx}
-                              className="px-4 py-3 hover:bg-gray-50 transition-colors"
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-3">
-                                  <div
-                                    className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                                      transaction.type === "credit"
-                                        ? "bg-green-100 text-green-600"
-                                        : "bg-red-100 text-red-600"
-                                    }`}
-                                  >
-                                    {transaction.type === "credit" ? (
-                                      <TrendingUp className="w-3 h-3" />
-                                    ) : (
-                                      <TrendingDown className="w-3 h-3" />
-                                    )}
-                                  </div>
-                                  <div>
-                                    <p className="font-medium text-gray-900 text-xs">
-                                      {transaction.description ||
-                                        "No description"}
-                                    </p>
-                                    <p className="text-xs text-gray-500">
-                                      {formatDate(transaction.date)}
-                                    </p>
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <p
-                                    className={`text-sm font-semibold ${
-                                      transaction.type === "credit"
-                                        ? "text-green-600"
-                                        : "text-red-600"
-                                    }`}
-                                  >
-                                    {formatCurrency(transaction.amount)}
-                                  </p>
-                                  <span
-                                    className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                                      transaction.type === "credit"
-                                        ? "bg-green-100 text-green-700"
-                                        : "bg-red-100 text-red-700"
-                                    }`}
-                                  >
-                                    {transaction.type.toUpperCase()}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                ))}
               </div>
-            ))}
+            ) : (
+              <div className="text-center py-12">
+                <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                  <DollarSign className="w-6 h-6 text-gray-400" />
+                </div>
+                <h3 className="text-sm font-medium text-gray-900 mb-1">
+                  No Adjustments
+                </h3>
+                <p className="text-gray-500 text-xs">
+                  No adjustments available for the selected month.
+                </p>
+              </div>
+            )}
           </div>
-        </div>
-      ) : (
-        <div className="text-center py-12">
-          <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
-            <Users className="w-6 h-6 text-gray-400" />
-          </div>
-          <h3 className="text-sm font-medium text-gray-900 mb-1">
-            No Notes Found
-          </h3>
-          <p className="text-gray-500 text-xs">
-            No credit/debit notes available for the selected month.
-          </p>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
@@ -371,20 +668,26 @@ const ExpenseSummary = ({ selectedMonth, shopId }) => {
     );
   }
 
-  const isValidSummary = Array.isArray(expenseSummary?.summary) && expenseSummary.summary.length > 0;
+  const isValidSummary =
+    Array.isArray(expenseSummary?.summary) && expenseSummary.summary.length > 0;
 
   const credits = isValidSummary
-    ? expenseSummary.summary.filter((e) => e.type === "credit" && e.expenseId !== 1 && e.expenseId !== 2)
+    ? expenseSummary.summary.filter(
+        (e) => e.type === "credit" && e.expenseId !== 1 && e.expenseId !== 2
+      )
     : [];
-  
+
   const debits = isValidSummary
-    ? expenseSummary.summary.filter((e) => e.type === "debit" && e.expenseId !== 1 && e.expenseId !== 2)
+    ? expenseSummary.summary.filter(
+        (e) => e.type === "debit" && e.expenseId !== 1 && e.expenseId !== 2
+      )
     : [];
-  
+
   const creditDebitNotes = isValidSummary
-    ? expenseSummary.summary.filter((e) => e.expenseId === 1 || e.expenseId === 2)
+    ? expenseSummary.summary.filter(
+        (e) => e.expenseId === 1 || e.expenseId === 2
+      )
     : [];
-  
 
   const ExpenseSection = ({
     title,

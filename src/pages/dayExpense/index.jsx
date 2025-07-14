@@ -12,7 +12,6 @@ import {
   Trash2,
 } from "lucide-react";
 import {
-  adjustTransaction,
   createDayExpense,
   freezeDay,
   getDayExpenseByDate,
@@ -52,13 +51,6 @@ function MonthlyExpenseSheet() {
   const dayRefs = useRef({});
   const scrollPositions = useRef({});
   const inputRefs = useRef({});
-  const [showAdjustModal, setShowAdjustModal] = useState(false);
-  const [adjustmentData, setAdjustmentData] = useState({
-    dayId: null,
-    amount: "",
-    description: "",
-    type: "debit",
-  });
   const [newExpense, setNewExpense] = useState({
     dayId: null,
     expenseId: "",
@@ -1081,67 +1073,7 @@ function MonthlyExpenseSheet() {
       console.error("Error saving expense:", error);
     }
   };
-  const handleAddAdjust = async (adjustmentData) => {
-    if (!adjustmentData.amount || !adjustmentData.dayId) return;
 
-    const dayId = adjustmentData.dayId;
-    scrollPositions.current[dayId] = dayRefs.current[dayId]?.scrollTop || 0;
-
-    const payload = {
-      shopId: shopId,
-      amount: parseFloat(adjustmentData.amount),
-      description: adjustmentData.description,
-      type: adjustmentData.type,
-      dayId: adjustmentData.dayId,
-    };
-
-    try {
-      await adjustTransaction(payload);
-      const updatedData = monthlyData.map((day) => {
-        if (day.day.id === adjustmentData.dayId) {
-          return {
-            ...day,
-            expenses: [
-              ...day.expenses,
-              {
-                id: Date.now(),
-                ...payload,
-                expenseId: adjustmentData.type === "credit" ? 1 : 2,
-                templateId: templateId,
-                isVerified: false,
-                expense: {
-                  id: adjustmentData.type === "credit" ? 1 : 2,
-                  name:
-                    adjustmentData.type === "credit"
-                      ? "Adjustment Credit"
-                      : "Adjustment Debit",
-                  type: adjustmentData.type,
-                  description: adjustmentData.description,
-                },
-              },
-            ],
-          };
-        }
-        return day;
-      });
-      setMonthlyData(updatedData);
-      setAdjustmentData({
-        dayId: null,
-        amount: "",
-        description: "",
-        type: "debit",
-      });
-
-      setTimeout(() => {
-        if (dayRefs.current[dayId]) {
-          dayRefs.current[dayId].scrollTop = scrollPositions.current[dayId];
-        }
-        setTimeout(() => fetchMonthlyData(), 500);
-      }, 0);
-    } catch (error) {
-      console.error("Error saving adjustment:", error);
-    }
-  };
   const handleVerifyDay = async (dayData) => {
     try {
       await verifyDay(dayData.day.id, !dayData.day.isVerified);
@@ -1549,29 +1481,7 @@ function MonthlyExpenseSheet() {
                               {dayData.day.isFrozen ? "Unfreeze" : "Freeze"}
                             </span>
                           </button>
-                          <button
-                            onClick={() => {
-                              setAdjustmentData({
-                                dayId: dayData.day.id,
-                                amount: "",
-                                description: "",
-                                type: "debit",
-                              });
-                              setShowAdjustModal(true);
-                            }}
-                            disabled={
-                              dayData.day.isFrozen || dayData.day.isVerified
-                            }
-                            className={`px-3 py-1 rounded text-white text-xs font-medium flex items-center space-x-1 bg-purple-600 hover:bg-purple-700
-                            ${
-                              dayData.day.isFrozen || dayData.day.isVerified
-                                ? "opacity-50 cursor-not-allowed"
-                                : ""
-                            }`}
-                          >
-                            <Plus className="w-3 h-3" />
-                            <span>Adjust</span>
-                          </button>
+  
                           <button
                             onClick={() => handleDeleteDay(dayData.day.id)}
                             disabled={
@@ -2371,97 +2281,7 @@ function MonthlyExpenseSheet() {
           })}
         </div>
       </div>
-      {/* Adjustment Modal */}
-      {showAdjustModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Add Adjustment</h3>
-              <button
-                onClick={() => setShowAdjustModal(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Type
-                </label>
-                <select
-                  value={adjustmentData.type}
-                  onChange={(e) =>
-                    setAdjustmentData({
-                      ...adjustmentData,
-                      type: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="debit">Debit</option>
-                  <option value="credit">Credit</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Amount (₹)
-                </label>
-                <input
-                  type="number"
-                  value={adjustmentData.amount}
-                  onChange={(e) =>
-                    setAdjustmentData({
-                      ...adjustmentData,
-                      amount: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter amount"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
-                </label>
-                <input
-                  type="text"
-                  value={adjustmentData.description}
-                  onChange={(e) =>
-                    setAdjustmentData({
-                      ...adjustmentData,
-                      description: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter description"
-                />
-              </div>
-
-              <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  onClick={() => setShowAdjustModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    handleAddAdjust(adjustmentData);
-                    setShowAdjustModal(false);
-                  }}
-                  className="px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  Add Adjustment
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

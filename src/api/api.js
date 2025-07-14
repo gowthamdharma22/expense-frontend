@@ -393,3 +393,14 @@ export const updateEmployee = async (employeeId, data) => {
     handleError(error);
   }
 };
+
+export const verifyAdjustment = async (adjustId, value) => {
+  try {
+    const response = await api.patch(`transaction/verify/${adjustId}`, {
+      isAdjustmentVerified: value,
+    });
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};

@@ -47,7 +47,7 @@ const ShopSelection = () => {
   return (
     <>
       <Navbar />
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white p-6">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white p-6 mt-20">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="text-center mb-12">

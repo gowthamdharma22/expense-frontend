@@ -153,10 +153,10 @@ function MonthlyExpenseSheet() {
     direction = "next"
   ) => {
     console.log("klkl", currentExpenseId, currentField, direction);
-    // Handle new expense navigation
+
+    // Handle new expense navigation (keep existing logic)
     if (currentExpenseId && currentExpenseId.toString().startsWith("new-")) {
       const dayId = currentExpenseId.replace("new-", "");
-
       switch (direction) {
         case "next":
         case "right":
@@ -193,7 +193,6 @@ function MonthlyExpenseSheet() {
               isNewExpense: true,
             };
           }
-
           if (currentField === "userId") {
             console.log("newExpense", currentField);
             return {
@@ -211,7 +210,6 @@ function MonthlyExpenseSheet() {
               isNewExpense: true,
             };
           }
-
           break;
 
         case "left":
@@ -259,7 +257,6 @@ function MonthlyExpenseSheet() {
           break;
 
         case "down":
-          // Find next day's new expense row
           const currentDayIndex = monthlyData.findIndex(
             (day) => day.day.id === dayId
           );
@@ -279,7 +276,6 @@ function MonthlyExpenseSheet() {
           break;
 
         case "up":
-          // First try to go to last expense of current day
           const currentDayData = monthlyData.find(
             (day) => day.day.id === dayId
           );
@@ -292,7 +288,6 @@ function MonthlyExpenseSheet() {
               dayId: lastExpense.dayId,
             };
           }
-          // Then try previous day's new expense row
           const currentDayIdx = monthlyData.findIndex(
             (day) => day.day.id === dayId
           );
@@ -307,13 +302,12 @@ function MonthlyExpenseSheet() {
           }
           break;
       }
-
       return null;
     }
 
+    // Find current expense position
     let currentDayIndex = -1;
     let currentExpenseIndex = -1;
-
     for (let dayIndex = 0; dayIndex < monthlyData.length; dayIndex++) {
       const expenseIndex = monthlyData[dayIndex].expenses.findIndex(
         (exp) => exp.id === currentExpenseId
@@ -330,23 +324,40 @@ function MonthlyExpenseSheet() {
     const currentExpense =
       monthlyData[currentDayIndex].expenses[currentExpenseIndex];
 
+    // Helper function to check if expense is credit or debit
+    const isCreditOrDebit = (expense) => {
+      return expense.expenseId === 1 || expense.expenseId === 2;
+    };
+
     switch (direction) {
       case "next":
+        // Skip name field for non-credit/debit expenses
         if (currentField === "description") {
+          if (isCreditOrDebit(currentExpense)) {
+            return {
+              expenseId: currentExpenseId,
+              field: "name",
+              dayId: currentExpense.dayId,
+            };
+          } else {
+            // Skip name field and go directly to amount for non-credit/debit expenses
+            return {
+              expenseId: currentExpenseId,
+              field: "amount",
+              dayId: currentExpense.dayId,
+            };
+          }
+        }
+        if (currentField === "name") {
           return {
             expenseId: currentExpenseId,
             field: "amount",
             dayId: currentExpense.dayId,
           };
         }
-        if (currentField === "name") {
-          return {
-            expenseId: currentExpenseId,
-            field: "description",
-            dayId: currentExpense.dayId,
-          };
-        }
+        // FIXED: Enter on amount should go down to next expense's amount field
         if (currentField === "amount") {
+          // Move down to next expense's amount field
           for (
             let expenseIndex = currentExpenseIndex + 1;
             expenseIndex < monthlyData[currentDayIndex].expenses.length;
@@ -359,7 +370,22 @@ function MonthlyExpenseSheet() {
               dayId: expense.dayId,
             };
           }
-
+          // If no more expenses in current day, go to next day's first expense amount
+          for (
+            let dayIndex = currentDayIndex + 1;
+            dayIndex < monthlyData.length;
+            dayIndex++
+          ) {
+            if (monthlyData[dayIndex].expenses.length > 0) {
+              const firstExpense = monthlyData[dayIndex].expenses[0];
+              return {
+                expenseId: firstExpense.id,
+                field: "amount",
+                dayId: firstExpense.dayId,
+              };
+            }
+          }
+          // If no next expense, go to new expense row
           const currentDay = monthlyData[currentDayIndex];
           return {
             expenseId: `new-${currentDay.day.id}`,
@@ -412,7 +438,6 @@ function MonthlyExpenseSheet() {
               dayId: expense.dayId,
             };
           }
-
           for (
             let dayIndex = currentDayIndex + 1;
             dayIndex < monthlyData.length;
@@ -425,6 +450,53 @@ function MonthlyExpenseSheet() {
                 field: "description",
                 dayId: firstExpense.dayId,
               };
+            }
+          }
+        }
+        if (currentField === "name") {
+          for (
+            let expenseIndex = currentExpenseIndex + 1;
+            expenseIndex < monthlyData[currentDayIndex].expenses.length;
+            expenseIndex++
+          ) {
+            const expense = monthlyData[currentDayIndex].expenses[expenseIndex];
+            // Skip to name only if next expense is credit/debit
+            if (isCreditOrDebit(expense)) {
+              return {
+                expenseId: expense.id,
+                field: "name",
+                dayId: expense.dayId,
+              };
+            } else {
+              // Skip name and go to amount for non-credit/debit
+              return {
+                expenseId: expense.id,
+                field: "amount",
+                dayId: expense.dayId,
+              };
+            }
+          }
+          for (
+            let dayIndex = currentDayIndex + 1;
+            dayIndex < monthlyData.length;
+            dayIndex++
+          ) {
+            if (monthlyData[dayIndex].expenses.length > 0) {
+              const firstExpense = monthlyData[dayIndex].expenses[0];
+              // Skip to name only if first expense is credit/debit
+              if (isCreditOrDebit(firstExpense)) {
+                return {
+                  expenseId: firstExpense.id,
+                  field: "name",
+                  dayId: firstExpense.dayId,
+                };
+              } else {
+                return {
+                  expenseId: firstExpense.id,
+                  field: "amount",
+                  dayId: firstExpense.dayId,
+                };
+              }
             }
           }
         }
@@ -441,7 +513,6 @@ function MonthlyExpenseSheet() {
               dayId: prevExpense.dayId,
             };
           }
-
           for (let dayIndex = currentDayIndex - 1; dayIndex >= 0; dayIndex--) {
             if (monthlyData[dayIndex].expenses.length > 0) {
               const lastExpense =
@@ -456,7 +527,6 @@ function MonthlyExpenseSheet() {
             }
           }
         }
-
         if (currentField === "description") {
           if (currentExpenseIndex > 0) {
             const prevExpense =
@@ -467,7 +537,6 @@ function MonthlyExpenseSheet() {
               dayId: prevExpense.dayId,
             };
           }
-
           for (let dayIndex = currentDayIndex - 1; dayIndex >= 0; dayIndex--) {
             if (monthlyData[dayIndex].expenses.length > 0) {
               const lastExpense =
@@ -482,33 +551,151 @@ function MonthlyExpenseSheet() {
             }
           }
         }
+        if (currentField === "name") {
+          if (currentExpenseIndex > 0) {
+            const prevExpense =
+              monthlyData[currentDayIndex].expenses[currentExpenseIndex - 1];
+            // Skip to name only if previous expense is credit/debit
+            if (isCreditOrDebit(prevExpense)) {
+              return {
+                expenseId: prevExpense.id,
+                field: "name",
+                dayId: prevExpense.dayId,
+              };
+            } else {
+              return {
+                expenseId: prevExpense.id,
+                field: "amount",
+                dayId: prevExpense.dayId,
+              };
+            }
+          }
+          for (let dayIndex = currentDayIndex - 1; dayIndex >= 0; dayIndex--) {
+            if (monthlyData[dayIndex].expenses.length > 0) {
+              const lastExpense =
+                monthlyData[dayIndex].expenses[
+                  monthlyData[dayIndex].expenses.length - 1
+                ];
+              if (isCreditOrDebit(lastExpense)) {
+                return {
+                  expenseId: lastExpense.id,
+                  field: "name",
+                  dayId: lastExpense.dayId,
+                };
+              } else {
+                return {
+                  expenseId: lastExpense.id,
+                  field: "amount",
+                  dayId: lastExpense.dayId,
+                };
+              }
+            }
+          }
+        }
         break;
 
       case "right":
+        // Complete right arrow navigation
         if (currentField === "description") {
+          if (isCreditOrDebit(currentExpense)) {
+            return {
+              expenseId: currentExpenseId,
+              field: "name",
+              dayId: currentExpense.dayId,
+            };
+          } else {
+            // Skip name field and go directly to amount
+            return {
+              expenseId: currentExpenseId,
+              field: "amount",
+              dayId: currentExpense.dayId,
+            };
+          }
+        }
+        if (currentField === "name") {
           return {
             expenseId: currentExpenseId,
             field: "amount",
             dayId: currentExpense.dayId,
           };
         }
+        // Right arrow from amount field moves to next expense's description
+        if (currentField === "amount") {
+          // Move to next expense's description
+          for (
+            let expenseIndex = currentExpenseIndex + 1;
+            expenseIndex < monthlyData[currentDayIndex].expenses.length;
+            expenseIndex++
+          ) {
+            const expense = monthlyData[currentDayIndex].expenses[expenseIndex];
+            return {
+              expenseId: expense.id,
+              field: "description",
+              dayId: expense.dayId,
+            };
+          }
+          // If no more expenses in current day, go to new expense row
+          const currentDay = monthlyData[currentDayIndex];
+          return {
+            expenseId: `new-${currentDay.day.id}`,
+            field: "expenseId",
+            dayId: currentDay.day.id,
+            isNewExpense: true,
+          };
+        }
         break;
 
       case "left":
+        // Complete left arrow navigation
         if (currentField === "amount") {
+          if (isCreditOrDebit(currentExpense)) {
+            return {
+              expenseId: currentExpenseId,
+              field: "name",
+              dayId: currentExpense.dayId,
+            };
+          } else {
+            // Skip name field and go directly to description
+            return {
+              expenseId: currentExpenseId,
+              field: "description",
+              dayId: currentExpense.dayId,
+            };
+          }
+        }
+        if (currentField === "name") {
           return {
             expenseId: currentExpenseId,
             field: "description",
             dayId: currentExpense.dayId,
           };
         }
-      case "left":
+        // Left arrow from description field moves to previous expense's amount
         if (currentField === "description") {
-          return {
-            expenseId: currentExpenseId,
-            field: "name",
-            dayId: currentExpense.dayId,
-          };
+          // Move to previous expense's amount
+          if (currentExpenseIndex > 0) {
+            const prevExpense =
+              monthlyData[currentDayIndex].expenses[currentExpenseIndex - 1];
+            return {
+              expenseId: prevExpense.id,
+              field: "amount",
+              dayId: prevExpense.dayId,
+            };
+          }
+          // If first expense in day, go to previous day's last expense
+          for (let dayIndex = currentDayIndex - 1; dayIndex >= 0; dayIndex--) {
+            if (monthlyData[dayIndex].expenses.length > 0) {
+              const lastExpense =
+                monthlyData[dayIndex].expenses[
+                  monthlyData[dayIndex].expenses.length - 1
+                ];
+              return {
+                expenseId: lastExpense.id,
+                field: "amount",
+                dayId: lastExpense.dayId,
+              };
+            }
+          }
         }
         break;
     }
@@ -544,9 +731,24 @@ function MonthlyExpenseSheet() {
         ? editValue !== (currentValue || "").toString()
         : parseFloat(editValue || 0) !== parseFloat(currentValue || 0);
 
+    // Handle username field separately
     if (field === "name") {
+      if (!hasChanged || !editValue) {
+        setEditingCell(null);
+        setEditValue("");
+        // Still navigate even if no change
+        if (fromKeyPress) {
+          navigateToNextCell(expense, field, direction);
+        }
+        return;
+      }
+
       const selectedUser = notesUser.find((u) => u.id == editValue);
-      if (!selectedUser) return;
+      if (!selectedUser) {
+        setEditingCell(null);
+        setEditValue("");
+        return;
+      }
 
       const payload = {
         ...expense,
@@ -564,7 +766,6 @@ function MonthlyExpenseSheet() {
 
       try {
         await updateDayExpense(expense.id, payload);
-
         const updatedData = monthlyData.map((day) => {
           if (day.day.id === expense.dayId) {
             return {
@@ -599,6 +800,7 @@ function MonthlyExpenseSheet() {
     const dayId = expense.dayId;
     scrollPositions.current[dayId] = dayRefs.current[dayId]?.scrollTop || 0;
 
+    // Handle other fields (description, amount)
     if (
       hasChanged &&
       field !== "name" &&
@@ -611,17 +813,26 @@ function MonthlyExpenseSheet() {
         templateId: expense.templateId,
         amount: field === "amount" ? newValue : expense.amount,
         description: field === "description" ? newValue : expense.description,
+        userId: expense.userId || expense.expense?.user?.id || null,
       };
 
       try {
         await updateDayExpense(expense.id, payload);
-
         const updatedData = monthlyData.map((day) => {
           if (day.day.id === expense.dayId) {
             return {
               ...day,
               expenses: day.expenses.map((e) =>
-                e.id === expense.id ? { ...e, ...payload } : e
+                e.id === expense.id
+                  ? {
+                      ...e,
+                      ...payload,
+                      expense: {
+                        ...e.expense,
+                        user: e.expense.user,
+                      },
+                    }
+                  : e
               ),
             };
           }
@@ -638,41 +849,9 @@ function MonthlyExpenseSheet() {
     setEditingCell(null);
     setEditValue("");
 
+    // Handle keyboard navigation after API call
     if (fromKeyPress) {
-      console.log("jk23", expense.id, field, direction);
-      const nextCell = findNextEditableCell(expense.id, field, direction);
-
-      if (nextCell) {
-        setTimeout(() => {
-          if (nextCell.isNewExpense) {
-            const expenseSelect =
-              inputRefs.current[`${nextCell.dayId}-expenseId`];
-            if (expenseSelect) {
-              expenseSelect.focus();
-            }
-          } else {
-            // Moving to existing expense
-            const nextExpense = monthlyData
-              .flatMap((day) => day.expenses)
-              .find((exp) => exp.id === nextCell.expenseId);
-
-            if (nextExpense) {
-              const nextCellValue =
-                nextCell.field === "amount"
-                  ? nextExpense.amount
-                  : nextCell.field === "name"
-                  ? nextExpense?.expense?.user?.id || nextExpense?.userId || ""
-                  : nextExpense.description || "";
-
-              handleCellClick(
-                nextCell.expenseId,
-                nextCell.field,
-                nextCellValue
-              );
-            }
-          }
-        }, 100);
-      }
+      navigateToNextCell(expense, field, direction);
     }
 
     setTimeout(() => {
@@ -680,6 +859,36 @@ function MonthlyExpenseSheet() {
         dayRefs.current[dayId].scrollTop = scrollPositions.current[dayId];
       }
     }, 0);
+  };
+
+  // Helper function for navigation
+  const navigateToNextCell = (expense, field, direction) => {
+    console.log("jk23", expense.id, field, direction);
+    const nextCell = findNextEditableCell(expense.id, field, direction);
+    if (nextCell) {
+      setTimeout(() => {
+        if (nextCell.isNewExpense) {
+          const expenseSelect =
+            inputRefs.current[`${nextCell.dayId}-expenseId`];
+          if (expenseSelect) {
+            expenseSelect.focus();
+          }
+        } else {
+          const nextExpense = monthlyData
+            .flatMap((day) => day.expenses)
+            .find((exp) => exp.id === nextCell.expenseId);
+          if (nextExpense) {
+            const nextCellValue =
+              nextCell.field === "amount"
+                ? nextExpense.amount
+                : nextCell.field === "name"
+                ? nextExpense?.expense?.user?.id || nextExpense?.userId || ""
+                : nextExpense.description || "";
+            handleCellClick(nextCell.expenseId, nextCell.field, nextCellValue);
+          }
+        }
+      }, 100);
+    }
   };
 
   const handleKeyPress = (e, expense, field) => {
@@ -713,7 +922,7 @@ function MonthlyExpenseSheet() {
         break;
 
       default:
-        return; // Don't handle other keys
+        return;
     }
 
     if (direction) {
@@ -723,17 +932,39 @@ function MonthlyExpenseSheet() {
 
   // Replace the handleCellClick function
   const handleCellClick = (rowId, field, currentValue) => {
+    // Only allow editing username for credit/debit expenses or if admin
+    if (field === "name") {
+      const expense = monthlyData
+        .flatMap((day) => day.expenses)
+        .find((exp) => exp.id === rowId);
+
+      if (
+        expense &&
+        (expense.expenseId === 1 || expense.expenseId === 2 || isAdmin)
+      ) {
+        setEditingCell(`${rowId}-${field}`);
+        setEditValue(currentValue === 0 ? "" : currentValue.toString());
+        setTimeout(() => {
+          const input = inputRefs.current[`${rowId}-${field}`];
+          if (input) {
+            input.focus();
+          }
+        }, 50);
+      }
+      return;
+    }
+
+    // Handle other fields normally
     setEditingCell(`${rowId}-${field}`);
     setEditValue(currentValue === 0 ? "" : currentValue.toString());
-
     setTimeout(() => {
       const input = inputRefs.current[`${rowId}-${field}`];
       if (input) {
         input.focus();
-        // input.select();
       }
-    }, 50); // Slightly increased timeout for better reliability
+    }, 50);
   };
+
   const handleCellDelete = async (expense) => {
     try {
       await deleteDayExpense(expense.id);
@@ -753,8 +984,7 @@ function MonthlyExpenseSheet() {
   };
 
   const handleAddExpense = async (dayData) => {
-    if (!newExpense.expenseId || !newExpense.amount || !newExpense.dayId)
-      return;
+    if (!newExpense.expenseId || !newExpense.dayId) return;
 
     const dayId = newExpense.dayId;
     scrollPositions.current[dayId] = dayRefs.current[dayId]?.scrollTop || 0;
@@ -1143,6 +1373,11 @@ function MonthlyExpenseSheet() {
       }, 100);
     }
   };
+  // Add this helper function near the top of your component
+  const isEditingDisabled = (dayData) => {
+    return !isAdmin && (dayData.day.isFrozen || dayData.day.isVerified);
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 p-6 font-sans">
       <ModernNavbar monthlyExpense={monthlyTotals.netAmount || 0} />
@@ -1213,12 +1448,18 @@ function MonthlyExpenseSheet() {
               dayData.day.date.split("T")[0] ===
               new Date().toISOString().split("T")[0];
             return (
+              // Update the main day container
               <div
                 key={dayData.day.id}
-                className={`rounded-lg overflow-hidden border border-gray-200 ${
-                  isToday ? "bg-yellow-50" : "bg-white"
-                }`}
                 ref={(el) => (dayRefs.current[dayData.day.id] = el)}
+                className={`bg-white rounded-lg shadow-sm overflow-hidden transition-all duration-200
+    ${isToday ? "ring-2 ring-blue-500" : ""}
+    ${
+      isEditingDisabled(dayData)
+        ? "opacity-90 grayscale-[30%] cursor-not-allowed pointer-events-none select-none"
+        : ""
+    }
+  `}
               >
                 <div
                   className={`px-4 py-3 border-b border-gray-200 flex items-center justify-between ${
@@ -1450,24 +1691,24 @@ function MonthlyExpenseSheet() {
                             )}
                           </td>
                           <td className="border border-gray-200 px-4 py-2 text-sm text-center">
-                            {editingCell === `${expense.id}-name` ? (
+                            {/* Username/Notes User Column */}
+                            {editingCell === `${expense.id}-name` &&
+                            (expense.expenseId === 1 ||
+                              expense.expenseId === 2 ||
+                              isAdmin) ? (
                               <select
-                                value={newExpense.userId}
-                                onChange={(e) =>
-                                  setNewExpense({
-                                    ...newExpense,
-                                    dayId: dayData.day.id,
-                                    userId: e.target.value,
-                                  })
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() => handleCellSave(expense, "name")}
+                                onKeyDown={(e) =>
+                                  handleKeyPress(e, expense, "name")
                                 }
-                                className="w-full h-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-300 text-sm bg-white"
+                                className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                                 ref={(el) =>
-                                  (inputRefs.current[
-                                    `${dayData.day.id}-userId`
-                                  ] = el)
+                                  (inputRefs.current[`${expense.id}-name`] = el)
                                 }
                               >
-                                <option value="">Select user</option>
+                                <option value="">Select User</option>
                                 {notesUser.map((user) => (
                                   <option key={user.id} value={user.id}>
                                     {user.name}
@@ -1477,6 +1718,9 @@ function MonthlyExpenseSheet() {
                             ) : (
                               <div
                                 onClick={() =>
+                                  (expense.expenseId === 1 ||
+                                    expense.expenseId === 2 ||
+                                    isAdmin) &&
                                   handleCellClick(
                                     expense.id,
                                     "name",
@@ -1485,16 +1729,22 @@ function MonthlyExpenseSheet() {
                                       ""
                                   )
                                 }
-                                className="cursor-pointer min-h-[32px] flex items-center justify-center"
+                                className={`cursor-pointer min-h-[32px] flex items-center justify-center ${
+                                  expense.expenseId === 1 ||
+                                  expense.expenseId === 2 ||
+                                  isAdmin
+                                    ? "hover:bg-gray-50"
+                                    : "cursor-not-allowed opacity-50"
+                                }`}
                               >
                                 {expense.expense?.user?.name ||
                                 expense.notesUser?.name ? (
-                                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                  <span className="text-blue-600 font-medium">
                                     {expense.expense?.user?.name ||
                                       expense.notesUser?.name}
                                   </span>
                                 ) : (
-                                  "-"
+                                  <span className="text-gray-400">-</span>
                                 )}
                               </div>
                             )}

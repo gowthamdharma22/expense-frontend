@@ -52,6 +52,18 @@ const ModernNavbar = ({ monthlyExpense }) => {
     }
   };
 
+  // Update active route based on current location
+  useEffect(() => {
+    const currentPath = location.pathname;
+    if (currentPath.includes("/expense")) {
+      setActiveRoute("expense");
+    } else if (currentPath.includes("/summary")) {
+      setActiveRoute("summary");
+    } else if (currentPath.includes("/data")) {
+      setActiveRoute("data");
+    }
+  }, [location.pathname]);
+
   useEffect(() => {
     fetchShops();
   }, []);

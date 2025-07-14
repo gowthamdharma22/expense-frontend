@@ -356,3 +356,40 @@ export const getAllActivity = async (data) => {
     handleError(error);
   }
 };
+
+//employees
+export const getAllEmployees = async () => {
+  try {
+    const response = await api.get("/auth");
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const deleteEmployee = async (employeeId) => {
+  try {
+    const response = await api.delete(`auth/${employeeId}`);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const createEmployee = async (data) => {
+  try {
+    const response = await api.post("auth/register", data);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const updateEmployee = async (employeeId, data) => {
+  try {
+    const response = await api.put(`auth/${employeeId}`, data);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};

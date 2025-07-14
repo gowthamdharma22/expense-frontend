@@ -28,6 +28,10 @@ import {
   getAllNoteUser,
   updateNoteUser,
   deleteNoteUser,
+  getAllEmployees,
+  createEmployee,
+  updateEmployee,
+  deleteEmployee,
 } from "../../api/api";
 import Navbar from "../../components/nav";
 
@@ -35,6 +39,7 @@ const TABS = {
   TEMPLATES: "templates",
   EXPENSES: "expenses",
   SHOPS: "shops",
+  EMPLOYEES: "employees",
 };
 
 const TemplateList = ({ setSelectedTemplate, setActiveTab }) => {
@@ -841,6 +846,266 @@ const ShopList = () => {
     </div>
   );
 };
+
+const EmployeeList = () => {
+  const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState(null);
+  const [editValues, setEditValues] = useState({});
+  const [newEmployee, setNewEmployee] = useState({
+    name: "",
+    email: "",
+    password: "employee@2025",
+  });
+
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
+
+  const fetchEmployees = async () => {
+    setLoading(true);
+    try {
+      const response = await getAllEmployees();
+      setEmployees(response.data || []);
+    } catch (error) {
+      console.error("Error fetching employees:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    if (!newEmployee.name.trim() || !newEmployee.email.trim()) return;
+    try {
+      await createEmployee(newEmployee);
+      await fetchEmployees();
+      setNewEmployee({
+        name: "",
+        email: "",
+        password: "employee@2025",
+      });
+    } catch (error) {
+      console.error("Error creating employee:", error);
+    }
+  };
+
+  const handleEdit = async (id) => {
+    try {
+      await updateEmployee(id, editValues);
+      await fetchEmployees();
+      setEditingId(null);
+    } catch (error) {
+      console.error("Error editing employee:", error);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Delete this employee?")) {
+      try {
+        await deleteEmployee(id);
+        setEmployees(employees.filter((e) => e.id !== id));
+      } catch (error) {
+        console.error("Error deleting employee:", error);
+      }
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-10">
+        <Loader2 className="animate-spin text-blue-500" size={24} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-semibold">Register Employee</h1>
+      </div>
+
+      <form
+        onSubmit={handleCreate}
+        className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6"
+      >
+        <input
+          type="text"
+          name="name"
+          value={newEmployee.name}
+          onChange={(e) =>
+            setNewEmployee({ ...newEmployee, name: e.target.value })
+          }
+          placeholder="Employee Name"
+          className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          required
+        />
+        <input
+          type="email"
+          name="email"
+          value={newEmployee.email}
+          onChange={(e) =>
+            setNewEmployee({ ...newEmployee, email: e.target.value })
+          }
+          placeholder="Email"
+          className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          required
+        />
+        <button
+          type="submit"
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          disabled={!newEmployee.name.trim() || !newEmployee.email.trim()}
+        >
+          Register Employee
+        </button>
+      </form>
+
+      {employees.length === 0 ? (
+        <div className="text-center py-8 text-gray-500">
+          No employees found. Register your first employee.
+        </div>
+      ) : (
+        <div className="border rounded-lg overflow-hidden">
+          <table className="min-w-full divide-y">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">
+                  Name
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">
+                  Email
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">
+                  Employee ID
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">
+                  Created At
+                </th>
+                <th className="px-4 py-3 text-right text-sm font-medium text-gray-500">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {employees.map((employee) => (
+                <tr key={employee.id} className="hover:bg-gray-50">
+                  {editingId === employee.id ? (
+                    <>
+                      <td className="px-4 py-3">
+                        <input
+                          type="text"
+                          name="name"
+                          value={editValues.name}
+                          onChange={(e) =>
+                            setEditValues({
+                              ...editValues,
+                              name: e.target.value,
+                            })
+                          }
+                          className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleEdit(employee.id);
+                            if (e.key === "Escape") setEditingId(null);
+                          }}
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <input
+                          type="email"
+                          name="email"
+                          value={editValues.email}
+                          onChange={(e) =>
+                            setEditValues({
+                              ...editValues,
+                              email: e.target.value,
+                            })
+                          }
+                          className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 text-sm">
+                        {employee.id}
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 text-sm">
+                        {employee.createdAt
+                          ? new Date(employee.createdAt).toLocaleString(
+                              "en-IN",
+                              {
+                                day: "numeric",
+                                month: "long",
+                                year: "numeric",
+                              }
+                            )
+                          : "-"}
+                      </td>
+                      <td className="px-4 py-3 text-right space-x-1">
+                        <button
+                          onClick={() => handleEdit(employee.id)}
+                          className="p-1 text-green-600 hover:text-green-800"
+                        >
+                          <Check size={16} />
+                        </button>
+                        <button
+                          onClick={() => setEditingId(null)}
+                          className="p-1 text-red-600 hover:text-red-800"
+                        >
+                          <X size={16} />
+                        </button>
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="px-4 py-3 font-medium">{employee.name}</td>
+                      <td className="px-4 py-3 text-gray-600">
+                        {employee.email}
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 text-sm font-mono">
+                        {employee.id}
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 text-sm">
+                        {employee.createdAt
+                          ? new Date(employee.createdAt).toLocaleString(
+                              "en-IN",
+                              {
+                                day: "numeric",
+                                month: "long",
+                                year: "numeric",
+                              }
+                            )
+                          : "-"}
+                      </td>
+                      <td className="px-4 py-3 text-right space-x-1">
+                        <button
+                          onClick={() => {
+                            setEditingId(employee.id);
+                            setEditValues({
+                              name: employee.name,
+                              email: employee.email,
+                            });
+                          }}
+                          className="p-1 text-blue-600 hover:text-blue-800"
+                        >
+                          <Pencil size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(employee.id)}
+                          className="p-1 text-red-600 hover:text-red-800"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </td>
+                    </>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
 const NotesUserList = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1138,6 +1403,16 @@ const ExpenseManagement = () => {
           >
             Notes Users
           </button>
+          <button
+            onClick={() => setActiveTab(TABS.EMPLOYEES)}
+            className={`px-4 py-2 font-medium ${
+              activeTab === TABS.EMPLOYEES
+                ? "border-b-2 border-blue-500 text-blue-600"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Register Employee
+          </button>
         </div>
 
         {activeTab === TABS.TEMPLATES && (
@@ -1151,6 +1426,7 @@ const ExpenseManagement = () => {
         )}
         {activeTab === TABS.SHOPS && <ShopList />}
         {activeTab === TABS.NOTES_USERS && <NotesUserList />}
+        {activeTab === TABS.EMPLOYEES && <EmployeeList />}
       </div>
     </>
   );

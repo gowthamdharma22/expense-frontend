@@ -401,124 +401,128 @@ const ExpenseList = ({ templateId }) => {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {sortedExpenses.map((expense) => (
-                <tr key={expense.id} className="hover:bg-gray-50">
-                  {editingId === expense.id ? (
-                    <>
-                      <td className="px-4 py-3">
-                        <input
-                          type="text"
-                          name="name"
-                          value={editValues.name}
-                          onChange={(e) =>
-                            setEditValues({
-                              ...editValues,
-                              name: e.target.value,
-                            })
-                          }
-                          className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          autoFocus
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") handleEdit(expense.id);
-                            if (e.key === "Escape") setEditingId(null);
-                          }}
-                        />
-                      </td>
+              {sortedExpenses
+                .filter((expense) => expense.id !== 1 && expense.id !== 2)
+                .map((expense) => (
+                  <tr key={expense.id} className="hover:bg-gray-50">
+                    {editingId === expense.id ? (
+                      <>
+                        <td className="px-4 py-3">
+                          <input
+                            type="text"
+                            name="name"
+                            value={editValues.name}
+                            onChange={(e) =>
+                              setEditValues({
+                                ...editValues,
+                                name: e.target.value,
+                              })
+                            }
+                            className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleEdit(expense.id);
+                              if (e.key === "Escape") setEditingId(null);
+                            }}
+                          />
+                        </td>
 
-                      <td className="px-4 py-3">
-                        <select
-                          name="type"
-                          value={editValues.type}
-                          onChange={(e) =>
-                            setEditValues({
-                              ...editValues,
-                              type: e.target.value,
-                            })
-                          }
-                          className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                          <option value="debit">Debit</option>
-                          <option value="credit">Credit</option>
-                        </select>
-                      </td>
-                      <td className="px-4 py-3">
-                        <input
-                          type="checkbox"
-                          name="isDefault"
-                          checked={editValues.isDefault}
-                          onChange={(e) =>
-                            setEditValues({
-                              ...editValues,
-                              isDefault: e.target.checked,
-                            })
-                          }
-                          className="h-4 w-4"
-                        />
-                      </td>
-                      <td className="px-4 py-3 text-right space-x-1">
-                        <button
-                          onClick={() => handleEdit(expense.id)}
-                          className="p-1 text-green-600 hover:text-green-800"
-                        >
-                          <Check size={16} />
-                        </button>
-                        <button
-                          onClick={() => setEditingId(null)}
-                          className="p-1 text-red-600 hover:text-red-800"
-                        >
-                          <X size={16} />
-                        </button>
-                      </td>
-                    </>
-                  ) : (
-                    <>
-                      <td className="px-4 py-3 font-medium">{expense.name}</td>
+                        <td className="px-4 py-3">
+                          <select
+                            name="type"
+                            value={editValues.type}
+                            onChange={(e) =>
+                              setEditValues({
+                                ...editValues,
+                                type: e.target.value,
+                              })
+                            }
+                            className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="debit">Debit</option>
+                            <option value="credit">Credit</option>
+                          </select>
+                        </td>
+                        <td className="px-4 py-3">
+                          <input
+                            type="checkbox"
+                            name="isDefault"
+                            checked={editValues.isDefault}
+                            onChange={(e) =>
+                              setEditValues({
+                                ...editValues,
+                                isDefault: e.target.checked,
+                              })
+                            }
+                            className="h-4 w-4"
+                          />
+                        </td>
+                        <td className="px-4 py-3 text-right space-x-1">
+                          <button
+                            onClick={() => handleEdit(expense.id)}
+                            className="p-1 text-green-600 hover:text-green-800"
+                          >
+                            <Check size={16} />
+                          </button>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            className="p-1 text-red-600 hover:text-red-800"
+                          >
+                            <X size={16} />
+                          </button>
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="px-4 py-3 font-medium">
+                          {expense.name}
+                        </td>
 
-                      <td className="px-4 py-3">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs ${
-                            expense.type === "credit"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800"
-                          }`}
-                        >
-                          {expense.type}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        {expense.isDefault ? (
-                          <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
-                            Default
+                        <td className="px-4 py-3">
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs ${
+                              expense.type === "credit"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            {expense.type}
                           </span>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right space-x-1">
-                        <button
-                          onClick={() => {
-                            setEditingId(expense.id);
-                            setEditValues({
-                              name: expense.name,
-                              type: expense.type,
-                              isDefault: expense.isDefault,
-                            });
-                          }}
-                          className="p-1 text-blue-600 hover:text-blue-800"
-                        >
-                          <Pencil size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(expense.id)}
-                          className="p-1 text-red-600 hover:text-red-800"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </td>
-                    </>
-                  )}
-                </tr>
-              ))}
+                        </td>
+                        <td className="px-4 py-3">
+                          {expense.isDefault ? (
+                            <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                              Default
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right space-x-1">
+                          <button
+                            onClick={() => {
+                              setEditingId(expense.id);
+                              setEditValues({
+                                name: expense.name,
+                                type: expense.type,
+                                isDefault: expense.isDefault,
+                              });
+                            }}
+                            className="p-1 text-blue-600 hover:text-blue-800"
+                          >
+                            <Pencil size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(expense.id)}
+                            className="p-1 text-red-600 hover:text-red-800"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </td>
+                      </>
+                    )}
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>

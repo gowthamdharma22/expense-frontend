@@ -1055,6 +1055,18 @@ function MonthlyExpenseSheet() {
       });
 
       setMonthlyData(updatedData);
+      setTimeout(() => {
+        const nextDayIndex = monthlyData.findIndex(
+          (day) => day.day.id === newExpense.dayId
+        );
+        if (nextDayIndex !== -1) {
+          const expenseSelect =
+            inputRefs.current[`${newExpense.dayId}-expenseId`];
+          if (expenseSelect) {
+            expenseSelect.focus();
+          }
+        }
+      }, 100);
       setNewExpense({
         dayId: null,
         expenseId: "",
@@ -1481,7 +1493,7 @@ function MonthlyExpenseSheet() {
                               {dayData.day.isFrozen ? "Unfreeze" : "Freeze"}
                             </span>
                           </button>
-  
+
                           <button
                             onClick={() => handleDeleteDay(dayData.day.id)}
                             disabled={
@@ -1617,9 +1629,17 @@ function MonthlyExpenseSheet() {
                                 value={editValue}
                                 onChange={(e) => setEditValue(e.target.value)}
                                 onBlur={() => handleCellSave(expense, "name")}
-                                onKeyDown={(e) =>
-                                  handleKeyPress(e, expense, "name")
-                                }
+                                onKeyDown={(e) => {
+                                  if (
+                                    e.key === "ArrowUp" ||
+                                    e.key === "ArrowDown"
+                                  ) {
+                                    // Don't prevent default - let browser handle dropdown navigation
+                                    e.target.focus();
+                                  } else {
+                                    handleKeyPress(e, expense, "name");
+                                  }
+                                }}
                                 className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                                 ref={(el) =>
                                   (inputRefs.current[`${expense.id}-name`] = el)
@@ -1807,6 +1827,13 @@ function MonthlyExpenseSheet() {
                               ] = el)
                             }
                             onKeyDown={(e) => {
+                              if (
+                                e.key === "ArrowUp" ||
+                                e.key === "ArrowDown"
+                              ) {
+                                // Let browser handle dropdown navigation
+                                return;
+                              }
                               switch (e.key) {
                                 case "Enter":
                                 case "ArrowRight":
@@ -1815,22 +1842,6 @@ function MonthlyExpenseSheet() {
                                     dayData.day.id,
                                     "expenseId",
                                     "next"
-                                  );
-                                  break;
-                                case "ArrowDown":
-                                  e.preventDefault();
-                                  handleNewExpenseNavigation(
-                                    dayData.day.id,
-                                    "expenseId",
-                                    "down"
-                                  );
-                                  break;
-                                case "ArrowUp":
-                                  e.preventDefault();
-                                  handleNewExpenseNavigation(
-                                    dayData.day.id,
-                                    "expenseId",
-                                    "up"
                                   );
                                   break;
                               }
@@ -1924,6 +1935,13 @@ function MonthlyExpenseSheet() {
                                   el)
                               }
                               onKeyDown={(e) => {
+                                if (
+                                  e.key === "ArrowUp" ||
+                                  e.key === "ArrowDown"
+                                ) {
+                                  // Let browser handle dropdown navigation
+                                  return;
+                                }
                                 switch (e.key) {
                                   case "Enter":
                                   case "ArrowRight":
@@ -1941,22 +1959,6 @@ function MonthlyExpenseSheet() {
                                       dayData.day.id,
                                       "userId",
                                       "left"
-                                    );
-                                    break;
-                                  case "ArrowDown":
-                                    e.preventDefault();
-                                    handleNewExpenseNavigation(
-                                      dayData.day.id,
-                                      "userId",
-                                      "down"
-                                    );
-                                    break;
-                                  case "ArrowUp":
-                                    e.preventDefault();
-                                    handleNewExpenseNavigation(
-                                      dayData.day.id,
-                                      "userId",
-                                      "up"
                                     );
                                     break;
                                 }
@@ -2129,6 +2131,13 @@ function MonthlyExpenseSheet() {
                                   el)
                               }
                               onKeyDown={(e) => {
+                                if (
+                                  e.key === "ArrowUp" ||
+                                  e.key === "ArrowDown"
+                                ) {
+                                  // Let browser handle dropdown navigation
+                                  return;
+                                }
                                 switch (e.key) {
                                   case "Enter":
                                   case "ArrowRight":
@@ -2140,22 +2149,6 @@ function MonthlyExpenseSheet() {
                                       dayData.day.id,
                                       "type",
                                       "left"
-                                    );
-                                    break;
-                                  case "ArrowDown":
-                                    e.preventDefault();
-                                    handleNewExpenseNavigation(
-                                      dayData.day.id,
-                                      "type",
-                                      "down"
-                                    );
-                                    break;
-                                  case "ArrowUp":
-                                    e.preventDefault();
-                                    handleNewExpenseNavigation(
-                                      dayData.day.id,
-                                      "type",
-                                      "up"
                                     );
                                     break;
                                 }
@@ -2281,7 +2274,6 @@ function MonthlyExpenseSheet() {
           })}
         </div>
       </div>
-
     </div>
   );
 }

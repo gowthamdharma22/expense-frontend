@@ -533,7 +533,7 @@ const CreditDebitNotes = ({ selectedMonth, shopId }) => {
                           </span>
                         </div>
 
-                        {!isAdmin && (
+                        {isAdmin && (
                           <div className="flex items-center space-x-2">
                             {!adjustment.isAdjustmentVerified && (
                               <button

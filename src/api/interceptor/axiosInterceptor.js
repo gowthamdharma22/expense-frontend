@@ -10,7 +10,10 @@ api.interceptors.request.use(
 
     console.log("Request Config:", config);
     console.log("Token:", token);
-    if (token && !config.url.includes("/auth")) {
+    if (
+      token &&
+      (!config.url.includes("/register") || !config.url.includes("/login"))
+    ) {
       config.headers.Authorization = `Bearer ${token}`;
     }
 
@@ -20,12 +23,14 @@ api.interceptors.request.use(
 );
 
 api.interceptors.response.use(
-
   (response) => {
     return response;
   },
   (error) => {
-    console.error("API Error:", error.response ? error.response.data : error.message);
+    console.error(
+      "API Error:",
+      error.response ? error.response.data : error.message
+    );
     if (error.response && error.response.status === 401) {
       localStorage.removeItem("access_token");
       window.location.href = "/auth";

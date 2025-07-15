@@ -1048,7 +1048,7 @@ const ActivityLogs = ({ selectedMonth, shopId }) => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mt-10">
       {/* Summary Card */}
       <div className="bg-gradient-to-r from-purple-600 to-purple-700 rounded-xl p-6 text-white shadow-md">
         <div className="flex items-center justify-between">
